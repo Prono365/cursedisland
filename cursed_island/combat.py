@@ -5,16 +5,16 @@ import os
 import sys
 from collections import Counter
 from itertools import combinations
-from sprites import Warna
-from characters import get_card_dialog
-from enemies import check_boss_phase
+from .sprites import Warna
+from .characters import get_card_dialog
+from .enemies import check_boss_phase
 
 def _tw():
     """Terminal width saat ini."""
     return max(40, shutil.get_terminal_size(fallback=(80, 24)).columns)
 
 try:
-    from utils import clear_screen, get_stat
+    from .utils import clear_screen, get_stat
 except ImportError:
     def clear_screen():
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -25,7 +25,7 @@ except ImportError:
 
 # Import unicode detection dari sprites
 try:
-    from sprites import UNICODE_SUPPORTED
+    from .sprites import UNICODE_SUPPORTED
 except ImportError:
     UNICODE_SUPPORTED = True
 
@@ -1167,7 +1167,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
             print(f"{Warna.KUNING}═══════════════════════════════════════{Warna.RESET}\n")
 
             # Fix: HUD Update — hanya tampilkan item biasa (bukan quest items) di combat
-            from constants import QUEST_ITEM_NAMES
+            from .constants import QUEST_ITEM_NAMES
             usable_items = [it for it in inventory if it not in QUEST_ITEM_NAMES]
 
             if not usable_items:

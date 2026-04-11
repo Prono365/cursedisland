@@ -6,7 +6,7 @@ import shutil
 import hashlib
 import base64
 from datetime import datetime
-from constants import (
+from .constants import (
     BASE_XP_TO_LEVEL,
     LEVEL_UP_HP_GAIN,
     LEVEL_UP_ATTACK_GAIN,
@@ -22,13 +22,14 @@ from constants import (
 _SET_FIELDS  = ('visited_locations', 'npcs_recruited', 'card_dialogs_seen')
 _SKIP_FIELDS = ('start_time',)
 
-# 5-slot save files: slot 0→data.txt, slot 1→data1.txt, …, slot 4→data4.txt
+# 5-slot save files under saves/ (slot 0→data.txt … slot 4→data4.txt)
+_SAVE_DIR = "saves"
 SLOT_FILES = {
-    0: "data.txt",
-    1: "data1.txt",
-    2: "data2.txt",
-    3: "data3.txt",
-    4: "data4.txt",
+    0: os.path.join(_SAVE_DIR, "data.txt"),
+    1: os.path.join(_SAVE_DIR, "data1.txt"),
+    2: os.path.join(_SAVE_DIR, "data2.txt"),
+    3: os.path.join(_SAVE_DIR, "data3.txt"),
+    4: os.path.join(_SAVE_DIR, "data4.txt"),
 }
 
 class GameState:
@@ -148,7 +149,7 @@ class GameState:
     def apply_character_level_gains(self, char_id):
         
         try:
-            from characters import CHARACTER_LEVEL_GAINS
+            from .characters import CHARACTER_LEVEL_GAINS
             gains = CHARACTER_LEVEL_GAINS.get(char_id)
             if gains:
                 self.level_up_gains = {
@@ -249,7 +250,7 @@ class GameState:
             chapter = 1
 
         try:
-            from characters import CHARACTER_MAIN_QUESTS, CHAPTER_QUEST_TEMPLATES, CHAPTER_OBJECTIVES_BY_CHAR
+            from .characters import CHARACTER_MAIN_QUESTS, CHAPTER_QUEST_TEMPLATES, CHAPTER_OBJECTIVES_BY_CHAR
             # Priority 1: Character-specific short objective for HUD
             char_obj = CHAPTER_OBJECTIVES_BY_CHAR.get(self.player_character, {})
             if chapter in char_obj:
@@ -266,7 +267,7 @@ class GameState:
             pass
 
         try:
-            from characters import CHAPTER_OBJECTIVES_BY_CHAR, CHAPTER_OBJECTIVES
+            from .characters import CHAPTER_OBJECTIVES_BY_CHAR, CHAPTER_OBJECTIVES
             char_obj = CHAPTER_OBJECTIVES_BY_CHAR.get(self.player_character, {})
             if chapter in char_obj:
                 return char_obj[chapter]
@@ -313,7 +314,7 @@ class GameState:
         }
         count = 0
         try:
-            from npc_interactions import is_sidequest_complete
+            from .npc_interactions import is_sidequest_complete
             for npc_id in npc_ids:
                 reward_flag = reward_flags.get(npc_id, f"{npc_id}_sidequest_done")
                 already_rewarded = self.story_flags.get(reward_flag, False)
@@ -406,13 +407,16 @@ class GameState:
 
     def get_slot_filename(self):
         # Public: resolve active slot → filename
-        return SLOT_FILES.get(self.current_slot, "data.txt")
+        return SLOT_FILES.get(self.current_slot, os.path.join(_SAVE_DIR, "data.txt"))
 
     def save_to_file(self, filename=None):
         """Save game state dengan sistem anti-tamper yang sophisticated:"""
         # Data Sync: resolve filename from active slot if not explicit
         if filename is None:
             filename = self.get_slot_filename()
+        save_dir = os.path.dirname(filename)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
         backup_name = f"{filename}.bak"
         try:
             # Ensure playtime and last_save are up-to-date in the serialized data
@@ -503,7 +507,7 @@ class GameState:
     def _show_vio_tampering_message(self):
         
         try:
-            from sprites import Warna
+            from .sprites import Warna
             import time
             
             print(f"\n{Warna.MERAH + Warna.TERANG}═══════════════════════════════════════════════════════════{Warna.RESET}")

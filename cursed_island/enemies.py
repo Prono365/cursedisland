@@ -1,4 +1,4 @@
-from sprites import Warna
+from .sprites import Warna
 import random
 
 

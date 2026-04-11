@@ -1,15 +1,16 @@
-from sprites import Warna
+from .sprites import Warna
 import random
 import json
 import os
 from contextlib import suppress
-from constants import FALLBACK_CARD_DIALOGS
+from .constants import FALLBACK_CARD_DIALOGS
 
 def _load_card_dialogs():
     """Muat CARD_PLAY_DIALOGS dari card_dialogs.json dengan validasi ketat."""
 
     _this_dir = os.path.dirname(os.path.abspath(__file__))
     _candidates = [
+        os.path.join(_this_dir, "data", "card_dialogs.json"),
         os.path.join(_this_dir, "card_dialogs.json"),
         os.path.join(os.getcwd(), "card_dialogs.json"),
     ]
@@ -1281,12 +1282,12 @@ import time
 from contextlib import suppress
 
 try:
-    from story import display_route_chapter
+    from .story import display_route_chapter
 except ImportError:
     def display_route_chapter(chapter_id):
         pass
 
-from constants import (
+from .constants import (
     MAX_CHAPTERS, BOSS_CHAPTERS, FINAL_CHAPTER, CHAPTER_BOSSES,
     SIDEQUESTS_NEEDED_FOR_CH4, SIDEQUESTS_NEEDED_FOR_CH6,
 )
@@ -2225,7 +2226,7 @@ def get_ch1_next_objective_dialog(char_id, next_obj_id):
 
 def display_ch1_completion(game_state):
     """Tampilkan teks penyelesaian Ch1 dan transisi ke Ch2."""
-    from utils import clear_screen, wait_input, separator
+    from .utils import clear_screen, wait_input, separator
 
     char_id    = game_state.player_character
     quest_data = get_ch1_quest(char_id)
@@ -2372,7 +2373,7 @@ def get_chapter_progress_info(game_state):
 
 def display_route_intro(char_id):
     """Tampilkan intro awal Chapter 1 untuk karakter yang dipilih."""
-    from utils import clear_screen, wait_input, separator
+    from .utils import clear_screen, wait_input, separator
 
     route = get_character_route(char_id)
     clear_screen()
@@ -2478,7 +2479,7 @@ def check_candala_encounter(game_state):
         # Trigger dialog misterius
         game_state.story_flags['candala_encountered'] = True
         try:
-            from sprites import Warna
+            from .sprites import Warna
             import time
             print(f"\n  {Warna.UNGU}*Sebuah pesan muncul di layar terdekat...{Warna.RESET}")
             time.sleep(0.5)

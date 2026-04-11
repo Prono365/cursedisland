@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cursed-island-escape"
+version = "0.3.2"
+description = "CLI adventure RPG with card-based combat (Big Two / poker hands)"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.6"
+authors = [
+  { name = "Kelompok Ludo X RPL 1 SMK Negeri 2 Jakarta" },
+]
+
+[project.urls]
+Homepage = "https://github.com/Prono365/ludo"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cursed_island*"]
+
+[tool.setuptools.package-data]
+cursed_island = ["data/*.json"]

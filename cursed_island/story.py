@@ -1,9 +1,9 @@
 # Konten cerita dan chapter
-from sprites import Warna
+from .sprites import Warna
 import time
 import shutil
 from contextlib import suppress
-from utils import print_slow
+from .utils import print_slow
 
 def _tw():
     """Terminal width saat ini."""
@@ -15,7 +15,7 @@ def _get_character_gender_descriptor(player_character=''):
         return 'gadis biasa'  # Default fallback
     
     try:
-        from characters import PLAYABLE_CHARACTERS
+        from .characters import PLAYABLE_CHARACTERS
         if player_character in PLAYABLE_CHARACTERS:
             char_data = PLAYABLE_CHARACTERS[player_character]
             gender = char_data.get('gender', 'female')
@@ -2148,7 +2148,7 @@ def print_story_slow(text, delay=None):
     # Use dialog_speed from SETTINGS if available, otherwise use provided delay or default
     if delay is None:
         try:
-            from main import SETTINGS
+            from .settings import SETTINGS
             delay = SETTINGS.get('dialog_speed', 0.03)
         except (ImportError, AttributeError):
             delay = 0.03

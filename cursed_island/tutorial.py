@@ -1,8 +1,8 @@
 # Tutorial game
 
-from sprites import Warna
+from .sprites import Warna
 import time
-from utils import clear_screen as clear, wait_input as wait, flush_input, separator as _sep
+from .utils import clear_screen as clear, wait_input as wait, flush_input, separator as _sep
 from contextlib import suppress
 
 def separator():

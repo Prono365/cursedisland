@@ -1,9 +1,9 @@
 # Interaksi NPC dan sidequest
 
-from sprites import Warna
+from .sprites import Warna
 import time
 from contextlib import suppress
-from utils import clear_screen, wait_input, separator, flush_input
+from .utils import clear_screen, wait_input, separator, flush_input
 
 #  NPC sidequest data - available_chapter, reward_item, chapter_unlock tracking
 #  DATA SIDEQUEST NPC

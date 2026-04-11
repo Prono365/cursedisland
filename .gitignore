@@ -1,3 +1,13 @@
 __pycache__/
 *.pyc
 *.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Save games (keep directory via saves/.gitkeep)
+saves/*.txt
+saves/*.bak
+saves/*.tmp

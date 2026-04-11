@@ -4,7 +4,7 @@ import sys
 import time
 import shutil
 from contextlib import suppress
-from sprites import Warna
+from .sprites import Warna
 
 def _setup_encoding():
     encoding_success = False

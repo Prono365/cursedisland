@@ -5,9 +5,9 @@ import time
 import shutil
 import re as _re
 from itertools import product
-from sprites import Warna, SPRITES
-from characters import get_character_intro, get_character_data
-from constants import (LEVEL_UP_HP_GAIN, LEVEL_UP_ATTACK_GAIN,
+from .sprites import Warna, SPRITES
+from .characters import get_character_intro, get_character_data
+from .constants import (LEVEL_UP_HP_GAIN, LEVEL_UP_ATTACK_GAIN,
                        LEVEL_UP_DEFENSE_GAIN, LEVEL_UP_SPEED_GAIN)
 
 def _tw():
@@ -52,7 +52,7 @@ def is_quest_item(item_name):
 # Exploration system - map navigation, enemy encounters, location tracking
 
 try:
-    from utils import clear_screen, flush_input
+    from .utils import clear_screen, flush_input
 except ImportError:
     from contextlib import suppress
     
@@ -624,7 +624,7 @@ class GameMap:
 
         for enemy in self.enemies:
             if (nx, ny) == (enemy['x'], enemy['y']):
-                from enemies import create_enemy_instance
+                from .enemies import create_enemy_instance
                 _chapter = int(gs.story_flags.get('current_chapter', 1)) if gs else 1
                 _plvl = getattr(gs, 'player_level', 1) if gs else 1
                 if ei := create_enemy_instance(enemy['id'], chapter=_chapter, player_level=_plvl):
@@ -663,7 +663,7 @@ class GameMap:
 
         if _current_chapter == 1 and gs is not None:
             try:
-                from characters import get_ch1_objective_status, get_ch1_next_incomplete_objective
+                from .characters import get_ch1_objective_status, get_ch1_next_incomplete_objective
                 obj_statuses = get_ch1_objective_status(gs)
                 if obj_statuses:
                     total_objs = len(obj_statuses)
@@ -686,7 +686,7 @@ class GameMap:
                         # Tampilkan panah ke item yang bisa complete objective berikutnya
                         # Cek QUEST_ITEMS DAN CH1_ITEM_OBJECTIVE_MAP agar non-quest items juga tampil
                         try:
-                            from characters import get_ch1_item_objective, CH1_ITEM_OBJECTIVE_MAP
+                            from .characters import get_ch1_item_objective, CH1_ITEM_OBJECTIVE_MAP
                             char_id_hint = gs.player_character
                             ch1_obj_items = set(CH1_ITEM_OBJECTIVE_MAP.get(char_id_hint, {}).keys())
                         except Exception:
@@ -714,7 +714,7 @@ class GameMap:
                 pass
 
         try:
-            from characters import CHARACTER_MAIN_QUESTS, CHAPTER_QUEST_TEMPLATES
+            from .characters import CHARACTER_MAIN_QUESTS, CHAPTER_QUEST_TEMPLATES
             char_id = gs.player_character if gs else ''
             char_quests = CHARACTER_MAIN_QUESTS.get(char_id, {})
             quest_data = char_quests.get(_current_chapter) or CHAPTER_QUEST_TEMPLATES.get(_current_chapter, {})
@@ -868,12 +868,12 @@ class GameMap:
         # ── CHAPTER HINT (kalau belum ada quest aktif) — char-specific ───
         if not main_quests:
             try:
-                from characters import CHAPTER_OBJECTIVES, CHAPTER_OBJECTIVES_BY_CHAR
+                from .characters import CHAPTER_OBJECTIVES, CHAPTER_OBJECTIVES_BY_CHAR
                 char_id_hint = gs.player_character if gs else ''
                 hint = (CHAPTER_OBJECTIVES_BY_CHAR.get(char_id_hint, {}).get(chapter, '')
                         or CHAPTER_OBJECTIVES.get(chapter, ''))
             except Exception:
-                from characters import CHAPTER_OBJECTIVES
+                from .characters import CHAPTER_OBJECTIVES
                 hint = CHAPTER_OBJECTIVES.get(chapter, '')
             if hint:
                 lines.append(("prog", f"  ▶ {hint}"))
@@ -890,7 +890,7 @@ class GameMap:
             ])
             # Sidequest directional tracker — arah ke item/enemy yang dibutuhkan
             try:
-                from npc_interactions import NPC_SIDEQUEST_DATA
+                from .npc_interactions import NPC_SIDEQUEST_DATA
                 sq_npc_id = sq.get('id', '').replace('recruit_', '')
                 npc_sq = NPC_SIDEQUEST_DATA.get(sq_npc_id, {})
                 req_items = list(npc_sq.get('required_items', []))
@@ -942,7 +942,7 @@ class GameMap:
                 dist = _manhattan(self.player_x, self.player_y, npc['x'], npc['y'])
                 arrow = _direction_arrow(self.player_x, self.player_y, npc['x'], npc['y'])
                 try:
-                    from characters import get_character_name
+                    from .characters import get_character_name
                     name = get_character_name(npc['id'])
                 except Exception:
                     name = npc['id'].capitalize()
@@ -953,7 +953,7 @@ class GameMap:
         _cur_ch = int(gs.story_flags.get('current_chapter', 1)) if gs else 1
         if _cur_ch == 1 and gs:
             try:
-                from characters import CH1_ITEM_OBJECTIVE_MAP
+                from .characters import CH1_ITEM_OBJECTIVE_MAP
                 _ch1_obj_items = set(CH1_ITEM_OBJECTIVE_MAP.get(gs.player_character, {}).keys())
             except Exception:
                 pass
@@ -1151,7 +1151,7 @@ def validate_access(target_location, gs):
     Returns (allowed: bool, reason: str).
     """
     try:
-        from characters import can_access_location, CHAPTER_REQUIREMENTS, CHAPTER_LOCATIONS
+        from .characters import can_access_location, CHAPTER_REQUIREMENTS, CHAPTER_LOCATIONS
     except ImportError:
         return True, "OK"
 
@@ -1310,7 +1310,7 @@ def loop_eksplorasi(gs, gm):
             gm.render(gs)
 
             if triggered := gm.update_enemies():
-                from enemies import create_enemy_instance
+                from .enemies import create_enemy_instance
                 _chapter = int(gs.story_flags.get('current_chapter', 1)) if gs else 1
                 _plvl = getattr(gs, 'player_level', 1) if gs else 1
                 if ei := create_enemy_instance(triggered['id'], chapter=_chapter, player_level=_plvl):
@@ -1389,7 +1389,7 @@ def loop_eksplorasi(gs, gm):
 def _init_location_quests(gs, gm_map_id):
     # Core: Init quests for current map/chapter — add_quest() deduplicates internally
     try:
-        from characters import CHARACTER_MAIN_QUESTS, NPC_QUESTS, CHAPTER_QUEST_TEMPLATES
+        from .characters import CHARACTER_MAIN_QUESTS, NPC_QUESTS, CHAPTER_QUEST_TEMPLATES
     except ImportError:
         CHARACTER_MAIN_QUESTS = {}
         NPC_QUESTS = {}
@@ -1435,7 +1435,7 @@ def _init_location_quests(gs, gm_map_id):
     # Sync HUD progress untuk Ch1 agar akurat bahkan setelah load game
     if chapter == 1:
         try:
-            from characters import sync_ch1_quest_hud
+            from .characters import sync_ch1_quest_hud
             sync_ch1_quest_hud(gs)
         except Exception:
             pass
@@ -1448,7 +1448,7 @@ def _init_location_quests(gs, gm_map_id):
 def _add_recruit_quest_on_meet(gs, npc_id):
     # Core: Add recruit quest to HUD on first NPC contact
     try:
-        from characters import NPC_QUESTS
+        from .characters import NPC_QUESTS
     except ImportError:
         return
 
@@ -1488,12 +1488,12 @@ def handle_hasil(hasil, gs, gm):
 
     try:
         if hasil['type'] == 'enemy':
-            from combat import run_combat
-            from characters import get_character_name, get_character_data
+            from .combat import run_combat
+            from .characters import get_character_name, get_character_data
 
 
             try:
-                from npc_interactions import show_enemy_encounter_dialog
+                from .npc_interactions import show_enemy_encounter_dialog
                 enemy_id = hasil['enemy'].get('id', '')
                 enemy_name = hasil['enemy'].get('name', '')
                 is_boss = hasil['enemy'].get('boss', False)
@@ -1585,7 +1585,7 @@ def handle_hasil(hasil, gs, gm):
                     # Blueprint/EMP Prototype pickup trigger tidak cukup — auto-credit saat rakitan jadi
                     if gs.player_character == 'ignatius' and int(gs.story_flags.get('current_chapter', 1)) == 1:
                         try:
-                            from characters import update_ch1_objective as _upd_ch1
+                            from .characters import update_ch1_objective as _upd_ch1
                             _upd_ch1(gs, 'sabotage_alarm_panel', 1)
                             print(f"  {Warna.CYAN}◐ Sabotase panel alarm: SIAP — gunakan EMP Prototype!{Warna.RESET}")
                         except Exception:
@@ -1618,7 +1618,7 @@ def handle_hasil(hasil, gs, gm):
                 # Ch1 combat objective tracking
                 if int(gs.story_flags.get('current_chapter', 1)) == 1:
                     try:
-                        from characters import (
+                        from .characters import (
                             get_ch1_quest, update_ch1_objective,
                             check_ch1_objective_progress, display_ch1_completion,
                             sync_ch1_quest_hud,
@@ -1660,7 +1660,7 @@ def handle_hasil(hasil, gs, gm):
                                                     print(f"  {Warna.HIJAU}{line}{Warna.RESET}")
                                                 time.sleep(1.5)
 
-                                            from characters import check_ch1_complete
+                                            from .characters import check_ch1_complete
                                             if check_ch1_complete(gs):
                                                 display_ch1_completion(gs)
                                             else:
@@ -1720,7 +1720,7 @@ def handle_hasil(hasil, gs, gm):
                 return 'checkpoint'
 
             try:
-                from characters import check_candala_encounter
+                from .characters import check_candala_encounter
                 check_candala_encounter(gs)
             except Exception:
                 pass
@@ -1741,7 +1741,7 @@ def handle_hasil(hasil, gs, gm):
             # Cek sidequest chapter advance jika USB Evidence Drive didapat
             if item_name == 'USB Evidence Drive':
                 try:
-                    from npc_interactions import _check_sidequest_chapter_advance
+                    from .npc_interactions import _check_sidequest_chapter_advance
                     _check_sidequest_chapter_advance(gs)
                 except Exception:
                     pass
@@ -1749,7 +1749,7 @@ def handle_hasil(hasil, gs, gm):
             # Ch1: cek apakah item ini trigger objective progress
             if int(gs.story_flags.get('current_chapter', 1)) == 1:
                 try:
-                    from characters import (
+                    from .characters import (
                         get_ch1_item_objective, update_ch1_objective,
                         check_ch1_objective_progress, get_ch1_quest,
                         display_ch1_completion, sync_ch1_quest_hud,
@@ -1832,7 +1832,7 @@ def handle_hasil(hasil, gs, gm):
                     gs.visited_locations.add(dest)
 
                     try:
-                        from npc_interactions import show_map_entry_dialog
+                        from .npc_interactions import show_map_entry_dialog
                         show_map_entry_dialog(dest, gs.player_character, gs)
                     except Exception:
                         pass
@@ -1842,7 +1842,7 @@ def handle_hasil(hasil, gs, gm):
                     # Saat masuk safe_zone, cek sidequest chapter advance
                     if dest in ('safe_zone', 'command_center'):
                         try:
-                            from npc_interactions import _check_sidequest_chapter_advance
+                            from .npc_interactions import _check_sidequest_chapter_advance
                             _check_sidequest_chapter_advance(gs)
                         except Exception:
                             pass
@@ -1854,7 +1854,7 @@ def handle_hasil(hasil, gs, gm):
                 print(f"\n{Warna.MERAH}Pintu boss terkunci!{Warna.RESET}")
                 time.sleep(1)
             else:
-                from enemies import create_boss_instance
+                from .enemies import create_boss_instance
                 from contextlib import suppress
                 if boss := create_boss_instance(hasil['boss_id']):
                     boss_id_key  = hasil['boss_id']
@@ -1870,7 +1870,7 @@ def handle_hasil(hasil, gs, gm):
 
 
                     try:
-                        from npc_interactions import show_enemy_encounter_dialog
+                        from .npc_interactions import show_enemy_encounter_dialog
                         show_enemy_encounter_dialog(boss_id_key, gs.player_character,
                                                     enemy_name=boss.get('name', ''),
                                                     is_boss=True)
@@ -1878,8 +1878,8 @@ def handle_hasil(hasil, gs, gm):
                         pass
                     if chapter == 1 and not gs.story_flags.get(preboss_flag):
                         try:
-                            from characters import get_ch1_pre_boss_dialog
-                            from utils import clear_screen
+                            from .characters import get_ch1_pre_boss_dialog
+                            from .utils import clear_screen
                             pre_lines = get_ch1_pre_boss_dialog(gs.player_character, boss_id_key)
                             if pre_lines:
                                 clear_screen()
@@ -1915,11 +1915,11 @@ def handle_hasil(hasil, gs, gm):
                             pass
 
                     with suppress(Exception):
-                        from story import play_boss_confrontation
+                        from .story import play_boss_confrontation
                         play_boss_confrontation(hasil['boss_id'])
 
-                    from combat import run_combat
-                    from characters import get_character_name, get_character_data
+                    from .combat import run_combat
+                    from .characters import get_character_name, get_character_data
 
                     char_data = get_character_data(gs.player_character) or {}
                     player_stats = {
@@ -2011,7 +2011,7 @@ def handle_hasil(hasil, gs, gm):
                         # Bug Fix: Ch1 boss kill → update boss-type objective by boss_id match
                         if chapter == 1:
                             try:
-                                from characters import (
+                                from .characters import (
                                     get_ch1_quest, update_ch1_objective,
                                     check_ch1_objective_progress, check_ch1_complete,
                                     display_ch1_completion, sync_ch1_quest_hud,
@@ -2073,7 +2073,7 @@ def handle_hasil(hasil, gs, gm):
 
                         # Ambil data quest utama chapter ini
                         try:
-                            from characters import CHARACTER_MAIN_QUESTS
+                            from .characters import CHARACTER_MAIN_QUESTS
                             quest_data = CHARACTER_MAIN_QUESTS.get(char_id, {}).get(chapter)
                         except Exception:
                             quest_data = None
@@ -2147,7 +2147,7 @@ def handle_hasil(hasil, gs, gm):
                                 next_msg = quest_data.get("next_chapter_msg", "")
 
                             # Naikan chapter — sistem 6 chapter
-                            from characters import advance_chapter, check_chapter_unlock
+                            from .characters import advance_chapter, check_chapter_unlock
                             next_ch = chapter + 1
                             can_advance, reason = check_chapter_unlock(gs, next_ch)
 
@@ -2261,7 +2261,7 @@ def handle_hasil(hasil, gs, gm):
                             ]
 
                             try:
-                                from story import get_route_chapter_at, display_route_chapter
+                                from .story import get_route_chapter_at, display_route_chapter
                                 # chapter_index: 0=ch1 selesai, 1=ch2 selesai, dst
                                 chapter_index = chapter - 1  # 0-based sesuai chapter yang baru selesai
                                 ch_id = get_route_chapter_at(gs.player_character, chapter_index)
@@ -2502,7 +2502,7 @@ def interaksi_npc(npc_id, gs, gm):
 
     # Coba gunakan npc_interactions jika tersedia
     try:
-        from npc_interactions import (
+        from .npc_interactions import (
             NPC_SIDEQUEST_DATA, can_trigger_sidequest, is_sidequest_complete,
             display_npc_intro, display_npc_quest_briefing, display_npc_completion,
             display_npc_repeat_talk
@@ -2565,7 +2565,7 @@ def interaksi_npc(npc_id, gs, gm):
             # Jika pemain sudah memiliki item yang dibutuhkan sebelum menerima quest,
             # langsung selesaikan sidequest agar tidak butuh pickup ulang.
             try:
-                from npc_interactions import is_sidequest_complete, display_npc_completion
+                from .npc_interactions import is_sidequest_complete, display_npc_completion
                 if is_sidequest_complete(npc_id, gs):
                     # FIX: jangan set sq_flag dulu — display_npc_completion handle flag + reward + dialog
                     success, _reward = display_npc_completion(npc_id, gs)
@@ -2719,11 +2719,11 @@ def save_menu(gs):
     # Core: Save Logic — show active slot, allow slot change before save
     clear_screen()
     try:
-        from gamestate import SLOT_FILES
+        from .gamestate import SLOT_FILES
         print(f"\n{Warna.CYAN}SIMPAN GAME{Warna.RESET}")
         print(f"{Warna.ABU_GELAP}{'─' * (_tw() - 1)}{Warna.RESET}")
         print(f"  Slot aktif: {Warna.KUNING}Slot {gs.current_slot + 1} "
-              f"({SLOT_FILES.get(gs.current_slot, 'data.txt')}){Warna.RESET}\n")
+              f"({gs.get_slot_filename()}){Warna.RESET}\n")
         print(f"  [1] Simpan ke Slot {gs.current_slot + 1}")
         print(f"  [2] Ganti Slot Simpan")
         print(f"  [0] Batal\n")
@@ -2734,7 +2734,7 @@ def save_menu(gs):
             # Inline slot picker
             for idx, fname in SLOT_FILES.items():
                 try:
-                    from gamestate import GameState as _GS
+                    from .gamestate import GameState as _GS
                     tmp = _GS()
                     s = tmp.get_save_summary(fname)
                     label = (f"Lv.{s['level']} | {s['player']} | {s['playtime']}"
@@ -2752,7 +2752,7 @@ def save_menu(gs):
         
         # Copy current settings to game state before saving
         try:
-            from main import SETTINGS
+            from .settings import SETTINGS
             gs.settings = dict(SETTINGS)
         except (ImportError, AttributeError):
             pass

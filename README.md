@@ -68,16 +68,25 @@ Tujuan utama pemain adalah melarikan diri dari pulau terkutuk ini dengan cara me
     ```
     *(Jika menggunakan file ZIP, ekstrak file tersebut dan buka foldernya).*
 
-2.  **Verifikasi File**
-    Pastikan file utama `main.py` dan file pendukung lainnya (`characters.py`, `story.py`, `combat.py`, dll.) berada dalam satu folder yang sama.
+2.  **Struktur repo**
+    Kode permainan berada di paket Python `cursed_island/`; data dialog kartu ada di `cursed_island/data/`. File save dibuat otomatis di folder `saves/` (folder ini sudah disertakan di repo; isi file save tidak di-commit). Jika Anda memiliki save lama bernama `data.txt` … `data4.txt` di root project, pindahkan ke `saves/` agar slot load tetap dikenali.
 
-3.  **Jalankan Game**
-    Buka terminal di dalam folder proyek, jalankan `launcher.bat` atau ketik perintah berikut:
+3.  **Jalankan game**
+    Dari folder root repository:
 
     ```bash
     python main.py
     ```
-    *(Jika perintah di atas tidak bekerja, coba gunakan `python3 main.py`).*
+
+    Atau sebagai modul:
+
+    ```bash
+    python -m cursed_island
+    ```
+
+    Di Windows Anda juga bisa menjalankan `launcher.bat`.
+
+    *(Jika `python` tidak dikenali, coba `py` atau `python3`.)*
 
 4.  **Mulai Bermain**
     Game akan membersihkan layar terminal dan memulai dengan menu utama. Ikuti petunjuk pada layar untuk memilih karakter dan memulai petualangan.
@@ -92,25 +101,32 @@ Tujuan utama pemain adalah melarikan diri dari pulau terkutuk ini dengan cara me
   </ul>
 </div>
 
-Berikut adalah penjelasan singkat mengenai struktur utama proyek ini:
+Berikut adalah struktur utama repository:
 
 ```
-├── launcher.bat           # Launcher program.
-├── main.py                # Entry point utama program, loop game, dan menu.
-├── characters.py          # Database karakter, stats, skill, dan data NPC.
-├── enemies.py             # Data musuh, boss, dan logika spawn musuh.
-├── exploration.py         # Logika pembuatan peta (GameMap), pergerakan, dan eksplorasi.
-├── combat.py              # Sistem pertarungan, logika kartu poker, dan damage calculation.
-├── story.py               # Database narasi cerita, dialog, dan ending.
-├── character_routes.py    # Konfigurasi rute spesifik per karakter dan quest NPC.
-├── npc_interactions.py    # Dialog panjang untuk interaksi NPC (Side Quest & Story).
-├── sprites.py             # Definisi warna ANSI dan karakter ASCII untuk UI.
-├── gamestate.py           # Kelas GameState untuk manajemen data pemain (HP, Inventory, Save/Load).
-├── utils.py               # Fungsi utilitas bantu (clear screen, input handling).
-├── constants.py           # Konstanta global game (versi, ukuran terminal, dll).
-├── tutorial.py            # Modul tutorial interaktif untuk pemain baru.
-├── card_dialogs.json      # Database dialog singkat saat combat (kutipan kartu).
-└── README.md              # Dokumentasi proyek (file ini).
+├── launcher.bat            # Pintasan Windows ke `py main.py` dari root repo.
+├── main.py                 # Titik masuk: memanggil `cursed_island.main`.
+├── pyproject.toml          # Metadata proyek (PEP 621) untuk pip / distribusi.
+├── LICENSE
+├── README.md
+├── saves/                  # File save slot (data.txt … data4.txt), di-gitignore.
+└── cursed_island/          # Paket permainan.
+    ├── __main__.py         # Mendukung `python -m cursed_island`.
+    ├── main.py             # Menu utama, loop game, pengaturan runtime.
+    ├── settings.py         # Objek pengaturan global (mis. kecepatan dialog).
+    ├── characters.py       # Karakter, stats, skill, NPC.
+    ├── enemies.py          # Musuh, boss, spawn.
+    ├── exploration.py      # Peta (GameMap), pergerakan, eksplorasi.
+    ├── combat.py           # Pertarungan kartu / poker hands, damage.
+    ├── story.py            # Narasi chapter dan ending.
+    ├── npc_interactions.py # Dialog NPC (side quest & story).
+    ├── sprites.py          # Warna ANSI & ASCII art UI.
+    ├── gamestate.py        # GameState, save/load.
+    ├── utils.py            # Utilitas terminal (clear, input, dll.).
+    ├── constants.py        # Konstanta global (versi, terminal min, dll.).
+    ├── tutorial.py         # Tutorial interaktif.
+    └── data/
+        └── card_dialogs.json   # Dialog singkat saat combat per kartu.
 ```
 
 #

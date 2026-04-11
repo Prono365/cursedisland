@@ -1,4 +1,5 @@
 # Konstanta global game
+import os
 
 # Currency System
 CURRENCY_NAME = "Dollars"
@@ -34,8 +35,8 @@ DEFAULT_TERMINAL_HEIGHT = 24
 
 # Game Settings
 GAME_VERSION = "0.3.2"
-SAVE_FILE = "data.txt"
-CONFIG_FILE = "card_dialogs.json"
+SAVE_FILE = os.path.join("saves", "data.txt")
+CONFIG_FILE = os.path.join("cursed_island", "data", "card_dialogs.json")
 
 # Chapter System — 6 chapter total
 MAX_CHAPTERS = 6
