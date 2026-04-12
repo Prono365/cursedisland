@@ -1,8 +1,6 @@
 <div align="center">
 
-#  CURSED ISLAND ESCAPE
-
-<img width="3780" height="1890" alt="CURSED(1)" src="https://github.com/user-attachments/assets/a6bd0ded-f651-48ea-a334-554426b8d1f0" />
+<img width="1280" alt="CURSED ISLAND ESCAPE" src="https://github.com/user-attachments/assets/b6282a8b-c6b9-4d60-a140-b213a60d1cc4" />
 
 <strong>Sebuah Adventure RPG dengan Sistem Pertarungan Kartu (Big Two) Berbasis Command-Line Interface (CLI)</strong>
 
