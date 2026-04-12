@@ -2,25 +2,13 @@
 
 <img width="1280" alt="CURSED ISLAND ESCAPE" src="https://github.com/user-attachments/assets/b6282a8b-c6b9-4d60-a140-b213a60d1cc4" />
 
-<strong>Sebuah Adventure RPG dengan Sistem Pertarungan Kartu (Big Two) Berbasis Command-Line Interface (CLI)</strong>
+**Sebuah permainan petualangan RPG berbasis Command-Line Interface (CLI) yang dibangun menggunakan bahasa pemrograman Python. Pemain berperan sebagai salah satu dari lima karakter unik yang terjebak di sebuah pulau misterius.**
 
-![Python](https://img.shields.io/badge/Python-3.6%2B-blue)
-![License](https://img.shields.io/badge/license-MIT-blue)
+Tujuan utama pemain adalah melarikan diri dari pulau terkutuk ini dengan cara mengumpulkan anggota tim, mencari item kunci, memecahkan misteri, dan mengalahkan musuh menggunakan strategi kombinasi kartu poker. Proyek ini merupakan tugas akhir kelompok Ludo dari kelas X RPL 1 SMKN 2 Jakarta dan para contributornya.
+
 </div>
 
-#
-
-<div id="user-content-toc">
-  <ul style="list-style: none;">
-    <summary>
-      <h2>Deskripsi Singkat</h2>
-    </summary>
-  </ul>
-</div>
-
-Cursed Island adalah sebuah permainan petualangan RPG berbasis Command-Line Interface (CLI) yang dibangun menggunakan bahasa pemrograman Python. Pemain berperan sebagai salah satu dari lima karakter unik yang terjebak di sebuah pulau misterius.
-
-Tujuan utama pemain adalah melarikan diri dari pulau terkutuk ini dengan cara mengumpulkan anggota tim, mencari item kunci, memecahkan misteri, dan mengalahkan musuh menggunakan strategi kombinasi kartu poker. Proyek ini merupakan tugas akhir dari kelas X RPL 1 SMKN 2 JAKARTA dan kegabutan para contributornya.
+<div align="justify">
 
 #
 
@@ -172,6 +160,8 @@ Proyek ini dikembangkan oleh siswa **SMKN 2 JAKARTA Kelas X RPL 1**:
 </div>
 
 Proyek ini dibuat sebagai tugas sekolah dan dirilis di bawah ![License](https://img.shields.io/badge/license-MIT-blue).
+
+</div>
 
 #
 
