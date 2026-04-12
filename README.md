@@ -1,6 +1,6 @@
 <div align="center">
 
-<img width="1280" alt="CURSED ISLAND ESCAPE" src="https://github.com/user-attachments/assets/b6282a8b-c6b9-4d60-a140-b213a60d1cc4" />
+<img width="4260" alt="CURSED ISLAND ESCAPE" src="https://github.com/user-attachments/assets/875c7f52-d7ba-4b1e-8bf5-5fb351058abd" />
 
 **Sebuah permainan petualangan RPG berbasis Command-Line Interface (CLI) yang dibangun menggunakan bahasa pemrograman Python. Pemain berperan sebagai salah satu dari lima karakter unik yang terjebak di sebuah pulau misterius.**
 
