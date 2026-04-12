@@ -23,13 +23,13 @@ Tujuan utama pemain adalah melarikan diri dari pulau terkutuk ini dengan cara me
 - **Sistem Karakter Unik:** 5 karakter pilihan (Vio, Haikaru, Ao Lin, Arganta, Ignatius) dengan latar belakang, stats, dan skill spesifik yang memengaruhi strategi permainan.
 - **Mekanisme Combat Kartu:** Sistem pertarungan turn-based menggunakan logika poker (High Card, Pair, Flush, Straight Flush, dll) untuk menentukan kekuatan serangan.
 - **Inventory:** Pengelolaan item kunci dan *quest items* untuk memecahkan puzzle lingkungan serta membuka progres chapter.
+- **Progresi Chapter:** Alur cerita mendalam yang terbagi dalam 6 Chapter, di mana setiap Chapter memiliki objektif unik dan syarat penyelesaian *sidequest* tertentu.
+
 - **Peta Eksplorasi:** Sistem pergerakan pemain di peta 2D yang dinamis, lengkap dengan kemunculan musuh, NPC interaktif, dan objek tersembunyi.
 - **Save/Load System:** Fitur penyimpanan progres yang kini mendukung hingga 5 slot (data.txt hingga data4.txt) dengan sistem proteksi data Base64.
 - **Multi-language UI:** Antarmuka yang mendukung karakter UTF-8 untuk visualisasi peta yang kaya warna dan fitur *autofit* yang responsif terhadap ukuran terminal.
 - **Boss Retry & Checkpoint:** Mekanisme percobaan ulang hingga 3 kali saat kalah melawan Boss dan sistem *snapshot* status otomatis sebelum pertempuran besar dimulai.
-- **Layanan Walkie-Talkie:** Akses menu toko dan interaksi NPC khusus (Bran Edwards) secara praktis melalui tombol pintas **[B]** tanpa harus kembali ke lokasi tertentu.
-- **Progresi Chapter:** Alur cerita mendalam yang terbagi dalam 6 Chapter, di mana setiap Chapter memiliki objektif unik dan syarat penyelesaian *sidequest* tertentu.
-
+  
 #
 
 <div id="user-content-toc">
@@ -90,27 +90,27 @@ Tujuan utama pemain adalah melarikan diri dari pulau terkutuk ini dengan cara me
 Berikut adalah struktur utama repository:
 
 ```
-├── launcher.bat            # Pintasan Windows ke `py main.py` dari root repo.
-├── main.py                 # Titik masuk: memanggil `cursed_island.main`.
-├── pyproject.toml          # Metadata proyek (PEP 621) untuk pip / distribusi.
+├── launcher.bat                # Pintasan Windows ke `py main.py` dari root repo.
+├── main.py                     # Titik masuk: memanggil `cursed_island.main`.
+├── pyproject.toml              # Metadata proyek (PEP 621) untuk pip / distribusi.
 ├── LICENSE
 ├── README.md
-├── saves/                  # File save slot (data.txt … data4.txt), di-gitignore.
-└── cursed_island/          # Paket permainan.
-    ├── __main__.py         # Mendukung `python -m cursed_island`.
-    ├── main.py             # Menu utama, loop game, pengaturan runtime.
-    ├── settings.py         # Objek pengaturan global (mis. kecepatan dialog).
-    ├── characters.py       # Karakter, stats, skill, NPC.
-    ├── enemies.py          # Musuh, boss, spawn.
-    ├── exploration.py      # Peta (GameMap), pergerakan, eksplorasi.
-    ├── combat.py           # Pertarungan kartu / poker hands, damage.
-    ├── story.py            # Narasi chapter dan ending.
-    ├── npc_interactions.py # Dialog NPC (side quest & story).
-    ├── sprites.py          # Warna ANSI & ASCII art UI.
-    ├── gamestate.py        # GameState, save/load.
-    ├── utils.py            # Utilitas terminal (clear, input, dll.).
-    ├── constants.py        # Konstanta global (versi, terminal min, dll.).
-    ├── tutorial.py         # Tutorial interaktif.
+├── saves/                      # File save slot (data.txt … data4.txt), di-gitignore.
+└── cursed_island/              # Paket permainan.
+    ├── __main__.py             # Mendukung `python -m cursed_island`.
+    ├── main.py                 # Menu utama, loop game, pengaturan runtime.
+    ├── settings.py             # Objek pengaturan global (mis. kecepatan dialog).
+    ├── characters.py           # Karakter, stats, skill, NPC.
+    ├── enemies.py              # Musuh, boss, spawn.
+    ├── exploration.py          # Peta (GameMap), pergerakan, eksplorasi.
+    ├── combat.py               # Pertarungan kartu / poker hands, damage.
+    ├── story.py                # Narasi chapter dan ending.
+    ├── npc_interactions.py     # Dialog NPC (side quest & story).
+    ├── sprites.py              # Warna ANSI & ASCII art UI.
+    ├── gamestate.py            # GameState, save/load.
+    ├── utils.py                # Utilitas terminal (clear, input, dll.).
+    ├── constants.py            # Konstanta global (versi, terminal min, dll.).
+    ├── tutorial.py             # Tutorial interaktif.
     └── data/
         └── card_dialogs.json   # Dialog singkat saat combat per kartu.
 ```
