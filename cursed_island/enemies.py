@@ -7,9 +7,9 @@ ENEMIES = {
         "id": "guard_novice",
         "name": "Security Guard - Novice",
         "level": 1,
-        "hp": 130,      # Buffed Tier 1 enemy
-        "max_hp": 130,
-        "attack": 14,
+        "hp": 155,
+        "max_hp": 155,
+        "attack": 17,
         "defense": 9,
         "speed": 13,
         "xp": 35,
@@ -28,9 +28,9 @@ ENEMIES = {
         "id": "guard_veteran",
         "name": "Security Guard - Veteran",
         "level": 3,
-        "hp": 175,      # Buffed Tier 2 enemy
-        "max_hp": 175,
-        "attack": 19,
+        "hp": 210,
+        "max_hp": 210,
+        "attack": 23,
         "defense": 16,
         "speed": 17,
         "xp": 65,
@@ -49,9 +49,9 @@ ENEMIES = {
         "id": "guard_elite",
         "name": "Elite Security Guard",
         "level": 5,
-        "hp": 215,
-        "max_hp": 215,
-        "attack": 23,
+        "hp": 260,
+        "max_hp": 260,
+        "attack": 28,
         "defense": 23,
         "speed": 21,
         "xp": 95,
@@ -70,9 +70,9 @@ ENEMIES = {
         "id": "mercenary_thug",
         "name": "Mercenary Thug",
         "level": 2,
-        "hp": 150,      # Buffed Tier 1-2 enemy
-        "max_hp": 150,
-        "attack": 23,
+        "hp": 180,
+        "max_hp": 180,
+        "attack": 27,
         "defense": 12,
         "speed": 18,
         "xp": 50,
@@ -91,9 +91,9 @@ ENEMIES = {
         "id": "mercenary_sniper",
         "name": "Mercenary Sniper",
         "level": 4,
-        "hp": 165,      # Buffed Tier 2 ranged
-        "max_hp": 165,
-        "attack": 21,
+        "hp": 200,
+        "max_hp": 200,
+        "attack": 26,
         "defense": 12,
         "speed": 20,
         "xp": 80,
@@ -112,9 +112,9 @@ ENEMIES = {
         "id": "scientist",
         "name": "Corrupted Scientist",
         "level": 3,
-        "hp": 130,      # Buffed Tier 1 non-combatant
-        "max_hp": 130,
-        "attack": 17,
+        "hp": 155,
+        "max_hp": 155,
+        "attack": 21,
         "defense": 15,
         "speed": 14,
         "xp": 65,
@@ -133,9 +133,9 @@ ENEMIES = {
         "id": "mansion_guard",
         "name": "Mansion Security",
         "level": 2,
-        "hp": 150,      # Buffed Tier 2 enemy
-        "max_hp": 150,
-        "attack": 17,
+        "hp": 180,
+        "max_hp": 180,
+        "attack": 21,
         "defense": 12,
         "speed": 14,
         "xp": 50,
@@ -154,9 +154,9 @@ ENEMIES = {
         "id": "tech_guard",
         "name": "Tech Security",
         "level": 3,
-        "hp": 165,      # Buffed Tier 2 enemy
-        "max_hp": 165,
-        "attack": 19,
+        "hp": 200,
+        "max_hp": 200,
+        "attack": 23,
         "defense": 15,
         "speed": 16,
         "xp": 65,
@@ -179,9 +179,9 @@ BOSSES = {
         "id": "maxwell_enforcer",
         "name": "Maxwell - Head of Security",
         "level": 8,
-        "hp": 450,      # Min 400 Boss HP
-        "max_hp": 450,
-        "attack": 24,
+        "hp": 570,
+        "max_hp": 570,
+        "attack": 30,
         "defense": 18,
         "speed": 22,
         "xp": 150,
@@ -232,9 +232,9 @@ BOSSES = {
         "id": "doctor_rousseau",
         "name": "Dr. Rousseau - Lead Researcher",
         "level": 9,
-        "hp": 420,
-        "max_hp": 420,
-        "attack": 20,
+        "hp": 530,
+        "max_hp": 530,
+        "attack": 26,
         "defense": 15,
         "speed": 25,
         "xp": 180,
@@ -286,9 +286,9 @@ BOSSES = {
         "id": "ghislaine_maxwell",
         "name": "Ghislaine Maxwell - The Facilitator",
         "level": 10,
-        "hp": 480,
-        "max_hp": 480,
-        "attack": 23,
+        "hp": 600,
+        "max_hp": 600,
+        "attack": 29,
         "defense": 20,
         "speed": 26,
         "xp": 200,
@@ -344,9 +344,9 @@ BOSSES = {
         "id": "prince_andrew",
         "name": "Prince Andrew - The Royal Predator",
         "level": 10,
-        "hp": 450,
-        "max_hp": 450,
-        "attack": 25,
+        "hp": 560,
+        "max_hp": 560,
+        "attack": 31,
         "defense": 18,
         "speed": 24,
         "xp": 220,
@@ -400,9 +400,9 @@ BOSSES = {
         "id": "bill_clinton",
         "name": "Bill Clinton - The Former President",
         "level": 11,
-        "hp": 500,
-        "max_hp": 500,
-        "attack": 27,
+        "hp": 625,
+        "max_hp": 625,
+        "attack": 33,
         "defense": 19,
         "speed": 24,
         "xp": 240,
@@ -457,9 +457,9 @@ BOSSES = {
         "id": "warden_elite",
         "name": "Warden Elite - Kepala Penjaga",
         "level": 7,
-        "hp": 430,      # Min 400 Boss HP
-        "max_hp": 430,
-        "attack": 20,
+        "hp": 540,
+        "max_hp": 540,
+        "attack": 25,
         "defense": 15,
         "speed": 18,
         "xp": 130,
@@ -487,9 +487,9 @@ BOSSES = {
         "id": "theater_master",
         "name": "Theater Master - Penguasa Panggung",
         "level": 7,
-        "hp": 400,
-        "max_hp": 400,
-        "attack": 18,
+        "hp": 500,
+        "max_hp": 500,
+        "attack": 23,
         "defense": 14,
         "speed": 22,
         "xp": 120,
@@ -518,9 +518,9 @@ BOSSES = {
         "id": "harbor_captain",
         "name": "Harbor Captain - Kapten Pelabuhan",
         "level": 7,
-        "hp": 420,
-        "max_hp": 420,
-        "attack": 21,
+        "hp": 525,
+        "max_hp": 525,
+        "attack": 27,
         "defense": 16,
         "speed": 16,
         "xp": 140,
@@ -548,9 +548,9 @@ BOSSES = {
         "id": "security_bot",
         "name": "AmBOTukam Mk II",
         "level": 8,
-        "hp": 460,
-        "max_hp": 460,
-        "attack": 22,
+        "hp": 575,
+        "max_hp": 575,
+        "attack": 28,
         "defense": 20,
         "speed": 14,
         "xp": 150,
@@ -579,9 +579,9 @@ BOSSES = {
         "id": "kepala_penjaga",
         "name": "Kepala Penjaga",
         "level": 10,
-        "hp": 550,
-        "max_hp": 550,
-        "attack": 22,
+        "hp": 690,
+        "max_hp": 690,
+        "attack": 28,
         "defense": 15,
         "speed": 12,
         "xp": 300,
@@ -609,9 +609,9 @@ BOSSES = {
         "id": "agen_maxwell",
         "name": "Maxwell's Agent",
         "level": 13,
-        "hp": 800,
-        "max_hp": 800,
-        "attack": 35,
+        "hp": 1000,
+        "max_hp": 1000,
+        "attack": 44,
         "defense": 22,
         "speed": 18,
         "xp": 500,
@@ -640,9 +640,9 @@ BOSSES = {
         "id": "maxwell_agent",
         "name": "Maxwell's Agent — Penjaga Server Room",
         "level": 7,
-        "hp": 420,
-        "max_hp": 420,
-        "attack": 20,
+        "hp": 525,
+        "max_hp": 525,
+        "attack": 25,
         "defense": 14,
         "speed": 18,
         "xp": 130,
@@ -677,9 +677,9 @@ BOSSES = {
         "id": "network_overseer",
         "name": "Network Overseer — Pengawas Jaringan Pulau",
         "level": 10,
-        "hp": 560,
-        "max_hp": 560,
-        "attack": 24,
+        "hp": 700,
+        "max_hp": 700,
+        "attack": 30,
         "defense": 18,
         "speed": 22,
         "xp": 300,
@@ -714,9 +714,9 @@ BOSSES = {
         "id": "mercenary_commander",
         "name": "Mercenary Commander — Komandan Bayaran Dermaga",
         "level": 10,
-        "hp": 540,
-        "max_hp": 540,
-        "attack": 27,
+        "hp": 675,
+        "max_hp": 675,
+        "attack": 34,
         "defense": 13,
         "speed": 24,
         "xp": 310,
@@ -751,10 +751,10 @@ BOSSES = {
         "id": "epstein_boss",
         "name": "Jeffrey Epstein",
         "level": 20,
-        "hp": 1666,
-        "max_hp": 1666,
-        "attack": 66,
-        "defense": 33,
+        "hp": 2100,
+        "max_hp": 2100,
+        "attack": 80,
+        "defense": 38,
         "speed": 33,
         "xp": 6666,
         "desc": "The predator. The monster. The man who must be stopped.",
@@ -820,6 +820,83 @@ BOSSES = {
                 "",
                 f"{Warna.HIJAU + Warna.TERANG}The island is free.{Warna.RESET}",
                 f"{Warna.KUNING}And you have all the evidence to expose the entire network.{Warna.RESET}"
+            ]
+        }
+    },
+
+    "benjamin_superboss": {
+        "id": "benjamin_superboss",
+        "name": "BENJAMIN, SCOURGE OF THE SQUIRT SEAS",
+        "level": 30,
+        "hp": 5000,
+        "max_hp": 5000,
+        "attack": 115,
+        "defense": 50,
+        "speed": 40,
+        "xp": 50000,
+        "dollars": 20000,
+        "desc": "The mythic abyssal leviathan. Lord of the Squirt Seas. The undisputed supreme terror of Cursed Island.",
+        "sprite": "S",
+        "boss": True,
+        "superboss": True,
+        "ai_style": "superboss",
+        "phases": 3,
+        "phase_thresholds": [0.65, 0.30],
+        "loot": ["Crown of the Squirt Seas", "Abyssal Pearl"],
+        "skills": {
+            "squirt_tsunami": {
+                "name": "Taunt, or: the Torrential Tsunami to Tear the Tainted",
+                "power": 65,
+                "effect": "Small abyssal water wave damage"
+            },
+            "abyssal_drown": {
+                "name": "Reach for the Abyss and Drown! Drown! Drown!",
+                "power": 60,
+                "effect": "Inflicts drowning horror - drains HP & Energy"
+            },
+            "scourge_crush": {
+                "name": "Abyssus Abyssum Invocat",
+                "power": 150,
+                "effect": "Devastating crushing strike from the ocean depths"
+            }
+        },
+        "dialog": {
+            "encounter": [
+                "*Hening yang mencekam memenuhi palung abisal... lalu ombak samudra bergemuruh dari kegelapan terkutuk.*",
+                "BENJAMIN: Ah... another wanderer brave enough to step into the sunless deep...",
+                "BENJAMIN: Tell me, traveler... do you hear the weeping beneath these tides?",
+                "BENJAMIN: For millennia, I have watched empires crumble and sunken stars fade into dust.",
+                "BENJAMIN: I am Benjamin... Scourge of the Squirt Seas, warden of forgotten tears.",
+                "BENJAMIN: If it is death you seek in this cold abyss... I shall grant you eternal rest!"
+            ],
+            "phase2": [
+                "*Air laut berubah menjadi hitam pekat saat aura abisal membumbung tinggi, menggetarkan dasar samudra!*",
+                "BENJAMIN: Fierce is thy blade, land-dweller... yet the abyss knows no warmth, nor pity.",
+                "BENJAMIN: Hear the roar of a thousand drowned souls crying from the deep!",
+                "BENJAMIN: Behold! The Torrent of Sorrow — wash away into oblivion!"
+            ],
+            "phase3": [
+                "*Tubuh raksasa Benjamin membara dengan cahaya abisal bergelora. Pusaran air merobek dasar palung!*",
+                "BENJAMIN: Even as my ancient core fractures... the tide shall NEVER yield!",
+                "BENJAMIN: O fathomless void... lend me thy final, tragic splendor!",
+                "BENJAMIN: Sink with me into the starless, endless abyss!"
+            ],
+            "defeat": [
+                "*Cahaya abisal perlahan memudar... Suara gemuruh samudra kini berganti menjadi hening yang begitu pedih.*",
+                "BENJAMIN: Ah... so the tide finally recedes...",
+                "BENJAMIN: The cold... the quiet... How long has it been since I saw the light of the sun?",
+                "",
+                "BENJAMIN: \"Upon the bed of sunless blue,",
+                "BENJAMIN:  Where ancient tides eternally weep,",
+                "BENJAMIN:  A lonely lord bids his adieu,",
+                "BENJAMIN:  To rest at last in boundless deep.",
+                "",
+                "BENJAMIN:  No crowns remain, no seas to keep...",
+                "BENJAMIN:  Only the silence... of final sleep.\"",
+                "",
+                "BENJAMIN: Forgive me, my sea... I could not guard thy depths...",
+                "",
+                "*Pusaran air mereda menjadi buih keemasan yang tenang. BENJAMIN, SCOURGE OF THE SQUIRT SEAS telah kembali ke pangkuan samudra.*"
             ]
         }
     }
@@ -1033,6 +1110,8 @@ def check_boss_phase(enemy):
 
             dialog_key = f'phase{target_phase}'
             dialog = enemy.get('dialog', {}).get(dialog_key, [])
+            if isinstance(dialog, str):
+                dialog = [dialog]
 
             # Stat multipliers — phase 2 moderate, phase 3 aggressive
             if target_phase == 2:
@@ -1068,6 +1147,41 @@ def check_boss_phase(enemy):
             }
 
     return None
+
+
+def get_enemy_dialog_lines(enemy_id, dialog_type='encounter'):
+    """Return enemy dialog lines for encounter, phase, or defeat."""
+    enemy = ENEMIES.get(enemy_id) or BOSSES.get(enemy_id)
+    if not enemy:
+        return []
+
+    dialogs = enemy.get('dialog', {})
+    if not isinstance(dialogs, dict):
+        return []
+
+    dialog_type = (dialog_type or 'encounter').lower().strip()
+    if dialog_type == 'mid_fight':
+        if dialogs.get('phase2'):
+            dialog_type = 'phase2'
+        elif dialogs.get('phase3'):
+            dialog_type = 'phase3'
+        else:
+            dialog_type = 'encounter'
+
+    lines = dialogs.get(dialog_type)
+    if isinstance(lines, str):
+        lines = [lines]
+    if not lines and dialog_type == 'encounter':
+        for fallback_key in ('phase2', 'phase3', 'defeat'):
+            alt = dialogs.get(fallback_key)
+            if isinstance(alt, str):
+                lines = [alt]
+                break
+            if isinstance(alt, list) and alt:
+                lines = alt
+                break
+
+    return lines if isinstance(lines, list) else []
 
 
 # Secret NPC Candala

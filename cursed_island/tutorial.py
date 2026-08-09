@@ -99,15 +99,17 @@ def tutorial_combat():
     print()
     print(f"  {Warna.KUNING}Kombinasi Kartu (lemah → kuat):{Warna.RESET}")
     combos = [
-        (Warna.ABU_GELAP,  "High Card",       "1 kartu saja",                         "×1.2"),
-        (Warna.PUTIH,      "One Pair",         "2 kartu sama nilai (misal K♠ K♥)",      "×1.5"),
-        (Warna.PUTIH,      "Two Pair",         "2 pasang berbeda",                      "×2.0"),
-        (Warna.HIJAU,      "Three of a Kind",  "3 kartu sama nilai",                    "×2.5"),
-        (Warna.HIJAU,      "Straight",         "5 kartu berurutan",                     "×3.0"),
-        (Warna.CYAN,       "Flush",            "5 kartu lambang sama",                  "×3.5"),
-        (Warna.CYAN,       "Full House",       "Three of a Kind + Pair",                "×4.0"),
-        (Warna.UNGU,       "Four of a Kind",   "4 kartu sama nilai",                    "×4.5"),
-        (Warna.MERAH,      "Straight Flush",   "Straight + Flush (TERKUAT!)",           "×5.0"),
+        (Warna.ABU_GELAP,  "High Card",       "1 kartu saja",                         "×1.0"),
+        (Warna.PUTIH,      "One Pair",         "2 kartu sama nilai (misal K♠ K♥)",      "×1.7"),
+        (Warna.PUTIH,      "Two Pair",         "2 pasang berbeda",                      "×2.5"),
+        (Warna.HIJAU,      "Three of a Kind",  "3 kartu sama nilai",                    "×3.4"),
+        (Warna.HIJAU,      "Straight",         "5 kartu berurutan",                     "×4.2"),
+        (Warna.CYAN,       "Flush",            "5 kartu lambang sama",                  "×4.7"),
+        (Warna.CYAN,       "Full House",       "Three of a Kind + Pair",                "×5.6"),
+        (Warna.UNGU,       "Four of a Kind",   "4 kartu sama nilai",                    "×6.5"),
+        (Warna.MERAH,      "Straight Flush",   "5 kartu berurutan & lambang sama",      "×8.0"),
+        (Warna.UNGU + Warna.TERANG, "Five of a Kind", "5 kartu sama nilai",            "×10.0"),
+        (Warna.CYAN + Warna.TERANG,  "Royal Flush",    "10-J-Q-K-A lambang sama (MAHA TERKUAT!)", "×12.0"),
     ]
     for color, name, desc, mult in combos:
         print(f"    {color}{name:<20}{Warna.RESET} {Warna.ABU_GELAP}{desc:<34}{Warna.RESET} {Warna.KUNING}{mult} dmg{Warna.RESET}")

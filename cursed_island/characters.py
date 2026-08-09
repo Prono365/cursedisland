@@ -97,11 +97,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "SSR Pity Break",
                 "type": "buff",
                 "power": 0,
-                "cost": 4,
-                "energy_cost": 4,
-                "cooldown": 5,
-                "duration_turns": 3,
-                "desc": "Guaranteed SSR pull! ATK +50% + DEF +50% selama 3 turn | EN:4 CD:5t",
+                "cost": 6,
+                "energy_cost": 6,
+                "cooldown": 6,
+                "duration_turns": 2,
+                "desc": "Guaranteed SSR pull! ATK +25% + DEF +25% selama 2 turn | EN:6 CD:6t",
                 "effect": "buff_atk_def",
                 "target": "self",
                 "level_bonus": 5
@@ -110,11 +110,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "Data Bomb",
                 "type": "special",
                 "power": 0,
-                "cost": 7,
-                "energy_cost": 7,
-                "cooldown": 5,
+                "cost": 8,
+                "energy_cost": 8,
+                "cooldown": 6,
                 "duration_turns": 1,
-                "desc": "Injeksi virus: kartu berikutnya ×3 DAMAGE (korbankan 10 HP sebagai biaya) | EN:7 CD:5t",
+                "desc": "Injeksi virus: kartu berikutnya ×1.75 DAMAGE (korbankan 10 HP sebagai biaya) | EN:8 CD:6t",
                 "effect": "buff_overload",
                 "target": "self",
                 "level_bonus": 0
@@ -163,11 +163,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "Focus Mind",
                 "type": "buff",
                 "power": 0,
-                "cost": 4,
-                "energy_cost": 4,
-                "cooldown": 5,
+                "cost": 5,
+                "energy_cost": 5,
+                "cooldown": 6,
                 "duration_turns": 2,
-                "desc": "Konsentrasi penuh: ATK diri sendiri +50% selama 2 turn | EN:4 CD:5t",
+                "desc": "Konsentrasi penuh: ATK diri sendiri +25% selama 2 turn | EN:5 CD:6t",
                 "effect": "buff_attack",
                 "target": "self",
                 "level_bonus": 5
@@ -176,11 +176,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "Strategic Gambit",
                 "type": "special",
                 "power": 0,
-                "cost": 5,
-                "energy_cost": 5,
-                "cooldown": 5,
+                "cost": 6,
+                "energy_cost": 6,
+                "cooldown": 6,
                 "duration_turns": 2,
-                "desc": "Korbankan 20 HP → ATK +50% selama 2 turn + +30 Energy | EN:5 CD:5t",
+                "desc": "Korbankan 25 HP → ATK +25% selama 2 turn + +20 Energy | EN:6 CD:6t",
                 "effect": "power_up",
                 "target": "self",
                 "level_bonus": 5
@@ -253,11 +253,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "Rhythm Boost",
                 "type": "buff",
                 "power": 0,
-                "cost": 4,
-                "energy_cost": 4,
-                "cooldown": 5,
-                "duration_turns": 3,
-                "desc": "Irama semangat: ATK +50% selama 3 turn + pulihkan 20 HP | EN:4 CD:5t",
+                "cost": 5,
+                "energy_cost": 5,
+                "cooldown": 6,
+                "duration_turns": 2,
+                "desc": "Irama semangat: ATK +20% selama 2 turn + pulihkan 15 HP | EN:5 CD:6t",
                 "effect": "buff_atk_heal",
                 "target": "self",
                 "level_bonus": 5
@@ -343,11 +343,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "Ambush Strike",
                 "type": "special",
                 "power": 0,
-                "cost": 6,
-                "energy_cost": 6,
-                "cooldown": 5,
+                "cost": 7,
+                "energy_cost": 7,
+                "cooldown": 6,
                 "duration_turns": 1,
-                "desc": "Keluar dari bayangan: kartu berikutnya ×2 damage + STUN musuh 1 turn! | CD: 5 turn",
+                "desc": "Keluar dari bayangan: kartu berikutnya ×1.5 damage + STUN musuh 1 turn! | CD: 6 turn",
                 "effect": "buff_ambush",
                 "target": "self",
                 "level_bonus": 0
@@ -395,11 +395,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "Overclock",
                 "type": "buff",
                 "power": 0,
-                "cost": 6,
-                "energy_cost": 6,
-                "cooldown": 5,
+                "cost": 7,
+                "energy_cost": 7,
+                "cooldown": 6,
                 "duration_turns": 2,
-                "desc": "Overclocking sistem: ATK diri sendiri +60% selama 2 turn + regen 12 Energy | CD: 5 turn",
+                "desc": "Overclocking sistem: ATK diri sendiri +30% selama 2 turn + regen 8 Energy | CD: 6 turn",
                 "effect": "buff_atk_energy",
                 "target": "self",
                 "level_bonus": 5
@@ -420,11 +420,11 @@ PLAYABLE_CHARACTERS = {
                 "name": "Power Surge",
                 "type": "special",
                 "power": 0,
-                "cost": 5,
-                "energy_cost": 5,
-                "cooldown": 5,
+                "cost": 6,
+                "energy_cost": 6,
+                "cooldown": 6,
                 "duration_turns": 1,
-                "desc": "Korbankan 10 HP → kartu berikutnya ×2.5 DAMAGE! (Overload circuit) | CD: 5 turn",
+                "desc": "Korbankan 15 HP → kartu berikutnya ×1.6 DAMAGE! (Overload circuit) | CD: 6 turn",
                 "effect": "buff_overload",
                 "target": "self",
                 "level_bonus": 0
@@ -454,10 +454,10 @@ CHARACTER_LEVEL_GAINS = {
     "vio": {
         # Hacker: cepat & menyerang, tapi tipis
         "hp":      10,  # squishy — HP tumbuh pelan
-        "attack":   2,  # solid attacker
+        "attack":   1,  # dikurangi dari 2 — lebih terkontrol
         "defense":  1,  # pertahanan rendah tetap rendah
         "speed":    2,  # SPD signature — naik cepat
-        "energy":   1,  # energy gain per level — lebih sedikit post-buff
+        "energy":   1,
         "note": "ATK/SPD scaling — tetap cepat tapi rapuh",
     },
     "haikaru": {
@@ -472,16 +472,16 @@ CHARACTER_LEVEL_GAINS = {
     "aolinh": {
         # Healer: support, energy regen, balanced growth
         "hp":      12,  # sedang
-        "attack":   1,  # paling lemah
+        "attack":   1,  # lemah — fokus heal bukan damage
         "defense":  2,  # sedang
         "speed":    1,  # sedang
-        "energy":   2,  # healer energy gain (dikurangi)
+        "energy":   2,  # healer energy gain
         "note": "Energy scaling — skill heal makin kuat tiap level",
     },
     "arganta": {
         # Scout: extreme speed & attack, paper-thin defense
         "hp":       9,  # paling kecil — glass cannon murni
-        "attack":   3,  # ATK tinggi signature
+        "attack":   2,  # dikurangi dari 3 — masih kuat tapi tidak breakingly fast
         "defense":  1,  # DEF tetap rendah
         "speed":    3,  # SPD tertinggi — la via è sempre avanti
         "energy":   2,
@@ -490,11 +490,11 @@ CHARACTER_LEVEL_GAINS = {
     "ignatius": {
         # Engineer: berserker ATK, sangat rapuh
         "hp":       8,  # paling rendah — rapuh banget
-        "attack":   4,  # paling tinggi — pure damage
+        "attack":   2,  # dikurangi dari 4 — masih tertinggi tapi bukan satu-tembak
         "defense":  1,  # hampir tidak ada defense growth
         "speed":    1,  # SPD biasa
         "energy":   2,  # energy untuk skill gadget
-        "note": "Pure ATK scaling — one-shot king dengan HP tipis",
+        "note": "Pure ATK scaling — high damage dengan HP tipis",
     },
 }
 
@@ -1158,7 +1158,7 @@ CHARACTER_INTROS = {
 
 def get_character_select_screen():
     text = f"\n{Warna.CYAN + Warna.TERANG}╔══════════════════════════════════════════════════════════╗\n"
-    text += f"║              PILIH KARAKTER UTAMA                         ║\n"
+    text += f"║              PILIH KARAKTER UTAMA                        ║\n"
     text += f"╚══════════════════════════════════════════════════════════╝{Warna.RESET}\n\n"
     
     for i, (char_id, data) in enumerate(PLAYABLE_CHARACTERS.items(), 1):
@@ -1229,7 +1229,9 @@ def get_card_dialog(char_id, hand_type):
         "flush":           "flush",
         "full_house":      "full_house",
         "four_of_a_kind":  "four_kind",
+        "five_of_a_kind":  "five_kind",
         "straight_flush":  "straight_flush",
+        "royal_flush":     "royal_flush",
         "nothing":         "high_card",
     }
 
@@ -1240,6 +1242,13 @@ def get_card_dialog(char_id, hand_type):
     if dialogs.get(hand_key) and len(dialogs[hand_key]) > 0:
         with suppress(Exception):
             return random.choice(dialogs[hand_key])
+
+    # Fallback untuk royal_flush dan five_kind ke straight_flush / four_kind
+    if hand_key in ("royal_flush", "five_kind"):
+        for alt_key in ("straight_flush", "four_kind"):
+            if dialogs.get(alt_key) and len(dialogs[alt_key]) > 0:
+                with suppress(Exception):
+                    return random.choice(dialogs[alt_key])
 
     # Fallback 1: Coba ambil high_card dialog
     if dialogs.get("high_card") and len(dialogs["high_card"]) > 0:

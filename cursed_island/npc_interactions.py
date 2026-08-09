@@ -937,7 +937,7 @@ _MAP_ENTRY_DIALOGS = {
 
 # Fungsi publik
 
-def show_enemy_encounter_dialog(enemy_id, player_char_id, enemy_name=None, is_boss=False):
+def show_enemy_encounter_dialog(enemy_id, player_char_id, enemy_name=None, is_boss=False, is_superboss=False):
     
     import shutil as _shutil
     tw = max(40, _shutil.get_terminal_size(fallback=(80, 24)).columns)
@@ -957,7 +957,13 @@ def show_enemy_encounter_dialog(enemy_id, player_char_id, enemy_name=None, is_bo
     char_name = CHAR_NAMES.get(player_char_id, player_char_id.capitalize())
     disp_enemy = enemy_name or enemy_id.replace('_', ' ').title()
 
-    enemy_pool  = _ENEMY_ENCOUNTER_LINES.get(enemy_id, ["Berhenti! Tidak ada yang bisa lewat!"])
+    try:
+        from .enemies import get_enemy_dialog_lines
+        enemy_pool = get_enemy_dialog_lines(enemy_id, 'encounter')
+        if not enemy_pool:
+            enemy_pool = _ENEMY_ENCOUNTER_LINES.get(enemy_id, ["Berhenti! Tidak ada yang bisa lewat!"])
+    except Exception:
+        enemy_pool = _ENEMY_ENCOUNTER_LINES.get(enemy_id, ["Berhenti! Tidak ada yang bisa lewat!"])
     
     if enemy_id == 'epstein_boss':
         epstein_char_key = f"{player_char_id}_epstein"
@@ -965,27 +971,63 @@ def show_enemy_encounter_dialog(enemy_id, player_char_id, enemy_name=None, is_bo
     else:
         player_pool = _PLAYER_REACTIONS.get(player_char_id, ["*Bersiap untuk bertarung*"])
     
-    enemy_line  = _random.choice(enemy_pool)
     player_line = _random.choice(player_pool)
 
-    sep   = '─' * min(58, tw - 2)
-    label = "★  BOSS ENCOUNTER  ★" if is_boss else "!  PERTEMUAN"
-    lc    = Warna.KUNING + Warna.TERANG if is_boss else Warna.MERAH
+    sep_w = min(58, tw - 2)
+    if is_superboss:
+        sep_outer = Warna.UNGU + '▓' * sep_w + Warna.RESET
+        sep       = Warna.CYAN + '─' * sep_w + Warna.RESET
+        label     = "★★  LEGENDARY SUPERBOSS  ★★"
+        lc        = Warna.UNGU + Warna.TERANG
+    elif is_boss:
+        sep_outer = None
+        sep       = '─' * sep_w
+        label     = "★  BOSS ENCOUNTER  ★"
+        lc        = Warna.KUNING + Warna.TERANG
+    else:
+        sep_outer = None
+        sep       = '─' * sep_w
+        label     = "!  PERTEMUAN"
+        lc        = Warna.MERAH
 
-    print(f"\n{lc}{sep}{Warna.RESET}")
-    print(f"  {lc}{label}{Warna.RESET}")
-    print(f"{lc}{sep}{Warna.RESET}\n")
+    if is_superboss:
+        print(f"\n{sep_outer}")
+        print(f"{lc}{sep}{Warna.RESET}")
+        print(f"  {lc}{label}{Warna.RESET}")
+        print(f"{lc}{sep}{Warna.RESET}")
+        print(f"{sep_outer}\n")
+    else:
+        print(f"\n{lc}{sep}{Warna.RESET}")
+        print(f"  {lc}{label}{Warna.RESET}")
+        print(f"{lc}{sep}{Warna.RESET}\n")
     time.sleep(0.12)
 
-    # Musuh bicara
-    print(f"  {Warna.MERAH + Warna.TERANG}{disp_enemy}{Warna.RESET}: {enemy_line}")
-    time.sleep(0.65)
+    # Musuh bicara — superboss plays full encounter script
+    if is_superboss:
+        for line in enemy_pool:
+            if ':' in line:
+                speaker, text = line.split(':', 1)
+                print(f"  {Warna.UNGU + Warna.TERANG}{speaker.strip()}{Warna.RESET}: {Warna.CYAN + Warna.TERANG}{text.strip()}{Warna.RESET}")
+            elif line.startswith('*') and line.endswith('*'):
+                print(f"  {Warna.CYAN + Warna.DIM}{line}{Warna.RESET}")
+            else:
+                print(f"  {Warna.CYAN + Warna.TERANG}{line}{Warna.RESET}")
+            time.sleep(0.75)
+    else:
+        enemy_line = _random.choice(enemy_pool)
+        print(f"  {Warna.MERAH + Warna.TERANG}{disp_enemy}{Warna.RESET}: {enemy_line}")
+        time.sleep(0.65)
 
     # Player bereaksi
     print(f"  {tc}{char_name}{Warna.RESET}: {player_line}")
     time.sleep(0.65)
 
-    print(f"\n{Warna.ABU_GELAP}{sep}{Warna.RESET}")
+    if is_superboss:
+        print(f"\n{sep_outer}")
+        print(f"  {Warna.CYAN + Warna.TERANG}⚠ Tidak ada jalan keluar dari pertarungan ini.{Warna.RESET}")
+        print(f"{sep_outer}")
+    else:
+        print(f"\n{Warna.ABU_GELAP}{sep}{Warna.RESET}")
     time.sleep(0.25)
 
 def show_map_entry_dialog(map_id, player_char_id, gs=None):
