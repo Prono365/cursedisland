@@ -279,10 +279,10 @@ class GameMap:
 
         self.place_exit(1, self.height // 2, "island", "Keluar")
 
-        self.place_item(4,  8,  "Health Potion")
-        self.place_item(4,  10, "Med Kit")
-        self.place_item(18, 8,  "Bandage")
-        self.place_item(12, 12, "Keycard Level 2")
+        self.place_item(4, 8,  "Health Potion")
+        self.place_item(4, 10, "Med Kit")
+        self.place_item(7, 8,  "Bandage")
+        self.place_item(6, 12, "Keycard Level 2")
 
         self.player_x, self.player_y = self._validate_spawn_point(3, self.height // 2)
 
@@ -434,6 +434,33 @@ class GameMap:
         self.place_item(20,  14, "Dokumen Rahasia")  # Hint item, bukan quest reward
         self.player_x, self.player_y = self._validate_spawn_point(12, 3)
 
+    def generate_abyssal_trench(self):
+        """Palung Abisal — Lokasi rahasia Superboss BENJAMIN, SCOURGE OF THE SQUIRT SEAS."""
+        for y in range(self.height):
+            for x in range(self.width):
+                if x == 0 or x == self.width - 1 or y == 0 or y == self.height - 1:
+                    self.tiles[y][x] = MapTile(7, False, "Palung Abisal Water")
+                elif y in (1, 2) or y in (self.height - 2, self.height - 3):
+                    self.tiles[y][x] = MapTile(7, False, "Abyssal Vortex")
+                else:
+                    self.tiles[y][x] = MapTile(0, True, "Kerak Dasar Laut")
+
+        self.place_exit(self.width // 2, self.height - 2, "dock", "Naik ke Permukaan (Dermaga)")
+
+        self.add_enemy_patrol(6,  6,  "guard_elite",       [(6, 6), (12, 6)])
+        self.add_enemy_patrol(18, 6,  "mercenary_sniper",  [(18, 6), (22, 6)])
+        self.add_enemy_patrol(12, 10, "security_bot",      [(12, 10), (18, 10)])
+
+        self.place_item(4,  4, "Med Kit",      respawn_delay=600)
+        self.place_item(20, 4, "Energy Drink", respawn_delay=600)
+
+        self.place_boss_door(
+            self.width // 2, 3,
+            "benjamin_superboss", "★ BENJAMIN, SCOURGE OF THE SQUIRT SEAS"
+        )
+
+        self.player_x, self.player_y = self._validate_spawn_point(self.width // 2, self.height - 3)
+
     def create_path(self, x1, y1, x2, y2):
         if x1 == x2:
             for y in range(min(y1, y2), max(y1, y2) + 1):
@@ -446,6 +473,12 @@ class GameMap:
 
     def place_exit(self, x, y, dest, desc):
         if 0 <= x < self.width and 0 <= y < self.height:
+            if not self.tiles[y][x].walkable:
+                spot = self._validate_spawn_point(x, y)
+                if spot:
+                    x, y = spot
+                else:
+                    return
             self.tiles[y][x] = MapTile(2, True, desc)
             self.exits.append({
                 'x': x, 'y': y,
@@ -456,6 +489,12 @@ class GameMap:
 
     def place_boss_door(self, x, y, boss_id, desc):
         if 0 <= x < self.width and 0 <= y < self.height:
+            if not self.tiles[y][x].walkable:
+                spot = self._validate_spawn_point(x, y)
+                if spot:
+                    x, y = spot
+                else:
+                    return
             self.tiles[y][x] = MapTile(9, True, desc)
             self.boss_doors.append({
                 'x': x, 'y': y,
@@ -491,7 +530,7 @@ class GameMap:
                 "vio":      ("network_overseer",    "command_center", self.width // 2, self.height // 2, "Network Overseer"),
                 "haikaru":  ("kepala_penjaga",      "prison_north",   self.width // 2, self.height - 3,  "Kepala Penjaga"),
                 "aolinh":   ("doctor_rousseau",     "theater",        self.width // 2, self.height // 2, "Dr. Rousseau"),
-                "arganta":  ("mercenary_commander", "dock",           self.width // 2, self.height // 2, "Mercenary Commander"),
+                "arganta":  ("mercenary_commander", "dock",           7,               self.height // 2, "Mercenary Commander"),
                 "ignatius": ("security_bot",        "basement",       self.width // 2, self.height - 3,  "AmBOTukam Mk III"),
             }
             if char_id in CH2_BOSSES:
@@ -524,6 +563,14 @@ class GameMap:
                         self.width // 2, self.height // 2,
                         'epstein_boss', "FINAL BOSS — Jeffrey Epstein"
                     )
+
+        # Superboss Benjamin di abyssal_trench (selalu tersedia)
+        if self.map_id == 'abyssal_trench':
+            if not any(d['boss_id'] == 'benjamin_superboss' for d in self.boss_doors):
+                self.place_boss_door(
+                    self.width // 2, 3,
+                    'benjamin_superboss', "★ SUPERBOSS — BENJAMIN, SCOURGE OF THE SQUIRT SEAS"
+                )
 
     def check_and_spawn_bosses(self, gs):
         # Public: check and spawn bosses based on chapter and character.
@@ -585,7 +632,44 @@ class GameMap:
             return None
 
         if not self.tiles[ny][nx].walkable:
+            tile_desc = self.tiles[ny][nx].description.lower()
+            tile_type = self.tiles[ny][nx].type
+            is_sea = (tile_type == 7 or 'water' in tile_desc or 'laut' in tile_desc or 'ocean' in tile_desc or 'vortex' in tile_desc or 'palung' in tile_desc)
+            if is_sea:
+                drown_count = gs.story_flags.get('_drown_attempts', 0) + 1
+                gs.story_flags['_drown_attempts'] = drown_count
+
+                if drown_count == 1:
+                    print(f"\n  {Warna.CYAN}🌊 Gelombang laut menerjang kakimu... Air laut tampak sangat pekat dan terlarang.{Warna.RESET}")
+                    time.sleep(1.2)
+                elif drown_count == 2:
+                    print(f"\n  {Warna.CYAN + Warna.TERANG}🌊 Arus bawah laut menarik tubuhmu! Air mulai memenuhi tenggorokanmu! (-15 HP){Warna.RESET}")
+                    gs.hp = max(1, gs.hp - 15)
+                    time.sleep(1.5)
+                elif drown_count == 3:
+                    print(f"\n  {Warna.MERAH}🌊 Bisikan purba menggema dari dasar laut: (-25 HP){Warna.RESET}")
+                    gs.hp = max(1, gs.hp - 25)
+                    time.sleep(2.0)
+                elif drown_count == 4:
+                    print(f"\n  {Warna.MERAH + Warna.TERANG}💀 PUSARAN AIR ABISAL MENELANMU! Kesadaranmu pudar di kegelapan samudra... (-30 HP){Warna.RESET}")
+                    gs.hp = max(1, gs.hp - 30)
+                    time.sleep(2.0)
+                elif drown_count >= 5:
+                    gs.story_flags['_drown_attempts'] = 0
+                    print(f"\n  {Warna.UNGU + Warna.TERANG}🌀 BADAI DAHSYAT DAN PUSARAN LAUT MENYERETMU KE PALUNG LAUT TERDALAM!{Warna.RESET}")
+                    print(f"  {Warna.MERAH + Warna.TERANG}Kamu telah memasuki PALUNG ABISAL — SARANG BENJAMIN, SCOURGE OF THE SQUIRT SEAS!{Warna.RESET}")
+                    time.sleep(2.5)
+                    return {
+                        'type': 'exit',
+                        'destination': 'abyssal_trench',
+                        'locked': False,
+                        'key': None
+                    }
+            else:
+                gs.story_flags['_drown_attempts'] = 0
             return None
+        else:
+            gs.story_flags['_drown_attempts'] = 0
 
         for exit_data in self.exits:
             if (nx, ny) == (exit_data['x'], exit_data['y']):
@@ -1063,10 +1147,14 @@ class GameMap:
                             # Logic: Boss Memory — dim color if boss was defeated before
                             defeated_ids = (gs.story_flags.get('defeated_boss_ids', [])
                                             if gs else [])
+                            is_benjamin = door.get('boss_id') == 'benjamin_superboss'
+                            sprite_char = 'S' if is_benjamin else 'B'
                             if door['boss_id'] in defeated_ids:
-                                row += f"{Warna.ABU_GELAP}B {Warna.RESET}"  # Memory Boss
+                                row += f"{Warna.ABU_GELAP}{sprite_char} {Warna.RESET}"  # Memory Boss
+                            elif is_benjamin:
+                                row += f"{Warna.UNGU + Warna.TERANG}{sprite_char} {Warna.RESET}"  # Deep blue-purple Superboss S
                             else:
-                                row += f"{Warna.MERAH + Warna.TERANG}B {Warna.RESET}"
+                                row += f"{Warna.MERAH + Warna.TERANG}{sprite_char} {Warna.RESET}"
                             rendered = True; break
                 if not rendered:
                     tile = self.tiles[y][x]
@@ -1150,6 +1238,9 @@ def validate_access(target_location, gs):
     """Check if player can enter target_location based on chapter and key items.
     Returns (allowed: bool, reason: str).
     """
+    if target_location == 'abyssal_trench':
+        return True, "OK"
+
     try:
         from .characters import can_access_location, CHAPTER_REQUIREMENTS, CHAPTER_LOCATIONS
     except ImportError:
@@ -1219,6 +1310,8 @@ def create_game_map(map_id, gs=None):
         gm.generate_laboratory()
     elif map_id in ("mansion_east", "mansion_west"):
         gm.generate_mansion_east()
+    elif map_id == "abyssal_trench":
+        gm.generate_abyssal_trench()
     else:
         gm.generate_island()
 
@@ -1481,6 +1574,34 @@ def _add_recruit_quest_on_meet(gs, npc_id):
         quest_type="side",
     )
 
+def _build_combat_player_stats(gs):
+    """Build player_stats dict for combat — single source for hand/discard bonuses."""
+    from .characters import get_character_name, get_character_data
+
+    char_data = get_character_data(gs.player_character) or {}
+    return {
+        'name':         get_character_name(gs.player_character),
+        'hp':           gs.hp,
+        'max_hp':       gs.max_hp,
+        'attack':       gs.attack,
+        'defense':      gs.defense,
+        'speed':        gs.speed,
+        'level':        gs.level,
+        'character_id': gs.player_character,
+        'skills':       char_data.get('skills', {}),
+        'energy':       getattr(gs, 'energy', 30),
+        'max_energy':   getattr(gs, 'max_energy', 30),
+        'bonus_discard_tokens': gs.story_flags.get('bonus_discard_tokens', 0),
+        'bonus_hand_slots':    gs.story_flags.get('bonus_hand_slots', 0),
+        'stats': {
+            'hp':       gs.hp,
+            'max_hp':   gs.max_hp,
+            'attack':   gs.attack,
+            'defense':  gs.defense,
+            'speed':    gs.speed,
+        },
+    }
+
 def handle_hasil(hasil, gs, gm):
     """Handle hasil dari movement dan interaksi."""
     if not hasil:
@@ -1489,43 +1610,20 @@ def handle_hasil(hasil, gs, gm):
     try:
         if hasil['type'] == 'enemy':
             from .combat import run_combat
-            from .characters import get_character_name, get_character_data
-
 
             try:
                 from .npc_interactions import show_enemy_encounter_dialog
                 enemy_id = hasil['enemy'].get('id', '')
                 enemy_name = hasil['enemy'].get('name', '')
                 is_boss = hasil['enemy'].get('boss', False)
+                is_superboss = hasil['enemy'].get('superboss', False)
                 show_enemy_encounter_dialog(enemy_id, gs.player_character,
-                                            enemy_name=enemy_name, is_boss=is_boss)
+                                            enemy_name=enemy_name, is_boss=is_boss,
+                                            is_superboss=is_superboss)
             except Exception:
                 pass
 
-            char_data = get_character_data(gs.player_character) or {}
-            player_stats = {
-                'name':         get_character_name(gs.player_character),
-                'hp':           gs.hp,
-                'max_hp':       gs.max_hp,
-                'attack':       gs.attack,
-                'defense':      gs.defense,
-                'speed':        gs.speed,
-                'level':        gs.level,
-                'character_id': gs.player_character,
-                # FIX: skill dari karakter, bukan story_flags yang selalu kosong
-                'skills':       char_data.get('skills', {}),
-                'energy':       getattr(gs, 'energy', 30),
-                'max_energy':   getattr(gs, 'max_energy', 30),
-                'bonus_discard_tokens': gs.story_flags.get('bonus_discard_tokens', 0),
-                'stats': {
-                    'hp':       gs.hp,
-                    'max_hp':   gs.max_hp,
-                    'attack':   gs.attack,
-                    'defense':  gs.defense,
-                    'speed':    gs.speed
-                }
-            }
-
+            player_stats = _build_combat_player_stats(gs)
             ret = run_combat(player_stats, hasil['enemy'], gs.inventory)
 
             # HP dan energy di-sync balik setelah combat
@@ -1873,7 +1971,8 @@ def handle_hasil(hasil, gs, gm):
                         from .npc_interactions import show_enemy_encounter_dialog
                         show_enemy_encounter_dialog(boss_id_key, gs.player_character,
                                                     enemy_name=boss.get('name', ''),
-                                                    is_boss=True)
+                                                    is_boss=True,
+                                                    is_superboss=boss.get('superboss', False))
                     except Exception:
                         pass
                     if chapter == 1 and not gs.story_flags.get(preboss_flag):
@@ -1919,31 +2018,8 @@ def handle_hasil(hasil, gs, gm):
                         play_boss_confrontation(hasil['boss_id'])
 
                     from .combat import run_combat
-                    from .characters import get_character_name, get_character_data
 
-                    char_data = get_character_data(gs.player_character) or {}
-                    player_stats = {
-                        'name':         get_character_name(gs.player_character),
-                        'hp':           gs.hp,
-                        'max_hp':       gs.max_hp,
-                        'attack':       gs.attack,
-                        'defense':      gs.defense,
-                        'speed':        gs.speed,
-                        'level':        gs.level,
-                        'character_id': gs.player_character,
-                        # FIX: skill dari karakter, bukan story_flags
-                        'skills':       char_data.get('skills', {}),
-                        'energy':       getattr(gs, 'energy', 20),
-                        'max_energy':   getattr(gs, 'max_energy', 20),
-                        'bonus_discard_tokens': gs.story_flags.get('bonus_discard_tokens', 0),
-                        'stats': {
-                            'hp':       gs.hp,
-                            'max_hp':   gs.max_hp,
-                            'attack':   gs.attack,
-                            'defense':  gs.defense,
-                            'speed':    gs.speed
-                        }
-                    }
+                    player_stats = _build_combat_player_stats(gs)
 
                     if hasattr(gs, 'save_checkpoint'):
                         gs.save_checkpoint(location=gs.current_location)
@@ -1987,6 +2063,27 @@ def handle_hasil(hasil, gs, gm):
                                 defeated_ids.append(boss_id)
                             gs.story_flags['defeated_boss_ids'] = defeated_ids
                             gm.boss_doors = [d for d in gm.boss_doors if d['boss_id'] != boss_id]
+
+                        # Check for Superboss Benjamin defeat
+                        if boss_id == 'benjamin_superboss':
+                            print(f"\n{Warna.UNGU + Warna.TERANG}{'★'*65}{Warna.RESET}")
+                            print(f"  {Warna.UNGU + Warna.TERANG}🏆 LEGENDARY SUPERBOSS VICTORY! 🏆{Warna.RESET}")
+                            print(f"  {Warna.CYAN + Warna.TERANG}YOU HAVE DEFEATED BENJAMIN, SCOURGE OF THE SQUIRT SEAS!{Warna.RESET}")
+                            print(f"  {Warna.CYAN + Warna.DIM}Cahaya abisal mereda. Legenda penakluk samudra telah terukir abadi!{Warna.RESET}")
+                            print(f"{Warna.UNGU + Warna.TERANG}{'★'*65}{Warna.RESET}")
+                            gs.add_item("Crown of the Squirt Seas")
+                            gs.add_item("Abyssal Pearl")
+                            gs.max_hp += 50
+                            gs.hp = gs.max_hp
+                            gs.attack += 10
+                            dol = boss.get('dollars', 15000)
+                            gs.dollars += dol
+                            xp = boss.get('xp', 25000)
+                            if gs.gain_xp(xp):
+                                print(f"\n  {Warna.KUNING}⭐ LEVEL UP! Level {gs.level}{Warna.RESET}")
+                            print(f"  {Warna.KUNING}💵 +${dol} | Max HP +50 | ATK +10 | Crown of the Squirt Seas!{Warna.RESET}")
+                            gs.save_to_file()
+                            time.sleep(4)
 
                         # Check if this is a final boss
                         if boss.get('final_boss') or boss_id == 'epstein_boss':
@@ -2291,9 +2388,10 @@ BRAN_SHOP_ITEMS = [
     {"name": "Health Potion",     "desc": "Restore 40 HP",                   "price": 30,  "effect": "heal_40"},
     {"name": "Med Kit",           "desc": "Restore 80 HP",                   "price": 60,  "effect": "heal_80"},
     {"name": "Antidote",          "desc": "Sembuhkan status efek negatif",   "price": 45,  "effect": "cure"},
-    {"name": "Energy Drink",      "desc": "ATK +50% selama 2 turn (pakai saat combat)", "price": 80,  "effect": "atk_buff_item"},
+    {"name": "Energy Drink",      "desc": "ATK +20% selama 2 turn (pakai saat combat)", "price": 120, "effect": "atk_buff_item"},
     {"name": "Armor Padding",     "desc": "DEF +50% selama 2 turn (pakai saat combat)", "price": 80,  "effect": "def_buff_item"},
     {"name": "Discard Token",     "desc": "+1 slot discard untuk 1 combat",  "price": 50,  "effect": "discard_token"},
+    {"name": "Deck Expansion",    "desc": "+1 kartu tambahan di hand combat (max +12)", "price": 100, "effect": "hand_slot"},
     {"name": "Lucky Charm",       "desc": "25% bonus dollar dari musuh berikutnya", "price": 100, "effect": "luck_boost"},
     {"name": "Explosive Charge",  "desc": "Senjata sekali pakai, 40 damage", "price": 80,  "effect": "explosive"},
 ]
@@ -2423,16 +2521,15 @@ def _buka_toko_bran_remote(gs):
                 print(f"\n  {Warna.HIJAU}✓ Status efek negatif dihapus.{Warna.RESET}")
             elif effect == 'atk_buff_item':
                 bought = gs.story_flags.get('shop_energy_drink_bought', 0)
-                if bought >= 3:
+                if bought >= 1:
                     gs.dollars += item['price']  # refund
-                    print(f"\n  {Warna.MERAH}Stok Energy Drink habis! (Batas 3x per run){Warna.RESET}")
-                    print(f"  {Warna.ABU_GELAP}Bran: \"Maaf bro, udah habis. Nanti restok.\"  {Warna.RESET}")
+                    print(f"\n  {Warna.MERAH}Stok Energy Drink habis! (Batas 1x per run){Warna.RESET}")
+                    print(f"  {Warna.ABU_GELAP}Bran: \"Hanya bisa jual 1 per pelanggan.\"  {Warna.RESET}")
                 else:
                     gs.story_flags['shop_energy_drink_bought'] = bought + 1
                     gs.add_item("Energy Drink")
-                    sisa = 3 - (bought + 1)
-                    print(f"\n  {Warna.HIJAU}✓ Energy Drink masuk ke inventory! Pakai saat combat → ATK +50% 2 turn.{Warna.RESET}")
-                    print(f"  {Warna.ABU_GELAP}Stok tersisa: {sisa}{Warna.RESET}")
+                    print(f"\n  {Warna.HIJAU}✓ Energy Drink masuk ke inventory! Pakai saat combat → ATK +20% 2 turn.{Warna.RESET}")
+                    print(f"  {Warna.ABU_GELAP}Stok tersisa: 0 (sudah beli 1x){Warna.RESET}")
             elif effect == 'def_buff_item':
                 bought = gs.story_flags.get('shop_armor_padding_bought', 0)
                 if bought >= 3:
@@ -2446,8 +2543,15 @@ def _buka_toko_bran_remote(gs):
                     print(f"\n  {Warna.HIJAU}✓ Armor Padding masuk ke inventory! Pakai saat combat → DEF +50% 2 turn.{Warna.RESET}")
                     print(f"  {Warna.ABU_GELAP}Stok tersisa: {sisa}{Warna.RESET}")
             elif effect == 'atk_up':
-                gs.attack += 3
-                print(f"\n  {Warna.HIJAU}✓ ATK permanent +3 (sekarang {gs.attack}){Warna.RESET}")
+                bought_atk = gs.story_flags.get('shop_atk_up_bought', 0)
+                if bought_atk >= 1:
+                    gs.dollars += item['price']  # refund
+                    print(f"\n  {Warna.MERAH}Stok ATK Upgrade habis! (Batas 1x per run){Warna.RESET}")
+                    print(f"  {Warna.ABU_GELAP}Bran: \"Hanya bisa jual 1 upgrade per pelanggan.\"  {Warna.RESET}")
+                else:
+                    gs.story_flags['shop_atk_up_bought'] = bought_atk + 1
+                    gs.attack += 2
+                    print(f"\n  {Warna.HIJAU}✓ ATK permanent +2 (sekarang {gs.attack}){Warna.RESET}")
             elif effect == 'def_up':
                 gs.defense += 3
                 print(f"\n  {Warna.HIJAU}✓ DEF permanent +3 (sekarang {gs.defense}){Warna.RESET}")
@@ -2455,6 +2559,15 @@ def _buka_toko_bran_remote(gs):
                 cur = gs.story_flags.get('bonus_discard_tokens', 0)
                 gs.story_flags['bonus_discard_tokens'] = cur + 1
                 print(f"\n  {Warna.HIJAU}✓ +1 Discard Token! (Aktif di combat berikutnya){Warna.RESET}")
+            elif effect == 'hand_slot':
+                cur = gs.story_flags.get('bonus_hand_slots', 0)
+                if cur >= 12:
+                    gs.dollars += item['price']
+                    print(f"\n  {Warna.MERAH}Deck Expansion sudah maksimum (20 kartu).{Warna.RESET}")
+                else:
+                    gs.story_flags['bonus_hand_slots'] = cur + 1
+                    total = min(20, 8 + gs.story_flags['bonus_hand_slots'])
+                    print(f"\n  {Warna.HIJAU}✓ Deck Expansion! Hand combat sekarang {total} kartu max.{Warna.RESET}")
             elif effect == 'luck_boost':
                 gs.story_flags['luck_boost_active'] = True
                 print(f"\n  {Warna.HIJAU}✓ Lucky Charm aktif! Bonus dollar musuh berikutnya.{Warna.RESET}")

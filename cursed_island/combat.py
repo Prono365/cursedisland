@@ -7,7 +7,7 @@ from collections import Counter
 from itertools import combinations
 from .sprites import Warna
 from .characters import get_card_dialog
-from .enemies import check_boss_phase
+from .enemies import check_boss_phase, get_enemy_dialog_lines
 
 def _tw():
     """Terminal width saat ini."""
@@ -161,7 +161,11 @@ def _evaluate_five_card_hand(cards, allow_four_straight=False):
     if not counts:
         return ("High Card", top_value)
 
-    if is_straight and is_flush:
+    if is_straight and is_flush and straight_high_value == 14:
+        return ("Royal Flush", 1000 + straight_high_value)
+    elif counts[0] == 5:
+        return ("Five of a Kind", 900 + top_value)
+    elif is_straight and is_flush:
         return ("Straight Flush", 800 + straight_high_value)
     elif counts[0] == 4:
         return ("Four of a Kind", 700 + top_value)
@@ -182,43 +186,261 @@ def _evaluate_five_card_hand(cards, allow_four_straight=False):
 
 # Hitung damage berdasarkan kombinasi kartu
 def calculate_kerusakan(hand_type, hand_score, base_attack, level=1, is_enemy=False, defense=0):
-    
     hand_multipliers = {
-        "Straight Flush": 5.0,
-        "Four of a Kind": 4.5,
-        "Full House": 4.0,
-        "Flush": 3.5,
-        "Straight": 3.0,
-        "Three of a Kind": 2.5,
-        "Two Pair": 2.0,
-        "One Pair": 1.5,
-        "High Card": 1.2,
+        "Royal Flush": 12.0,
+        "Five of a Kind": 10.0,
+        "Straight Flush": 8.0,
+        "Four of a Kind": 6.5,
+        "Full House": 5.6,
+        "Flush": 4.7,
+        "Straight": 4.2,
+        "Three of a Kind": 3.4,
+        "Two Pair": 2.5,
+        "One Pair": 1.7,
+        "High Card": 1.0,
         "Nothing": 0.5,
     }
     multiplier = hand_multipliers.get(hand_type, 1.0)
+    bonus = min(0.40, max(0.0, hand_score / 180.0))
+    multiplier += bonus
 
     if is_enemy:
-        # Musuh: damage dikunci supaya tidak terlalu brutal di awal
-        level_factor = 1 + (level - 1) * 0.08
+        level_factor = 1 + (level - 1) * 0.20
         raw = base_attack * multiplier * level_factor
-        kerusakan = int(raw)
-        kerusakan = max(8, min(kerusakan, 40))
     else:
-        # Player: level scaling kuat — level 10 = ~3x, level 20 = ~5x
-        level_factor = 1 + (level - 1) * 0.22
-        kerusakan = int(base_attack * multiplier * level_factor)
+        level_factor = 1 + (level - 1) * 0.12
+        raw = base_attack * multiplier * level_factor
 
-    # Varians ±12%
-    variance = max(1, int(kerusakan * 0.12))
-    kerusakan = random.randint(max(4, kerusakan - variance), kerusakan + variance)
+    kerusakan = int(raw)
+    variance = max(2, int(kerusakan * 0.14))
+    kerusakan = random.randint(max(1, kerusakan - variance), kerusakan + variance)
 
-    # Defense % reduction: tiap 1 DEF = 1.8% pengurangan, max 70% reduction
     if defense > 0:
-        reduction = min(0.70, defense * 0.018)
+        reduction = min(0.72, defense * 0.018)
         kerusakan = int(kerusakan * (1.0 - reduction))
 
-    min_dmg = 5 if is_enemy else 8
+    min_dmg = 18 if is_enemy else 8
     return max(min_dmg, kerusakan)
+
+
+def _resolve_jammed_indices(indices, hand, player, Warna=Warna):
+    if not indices or player.get('_hand_jam', 0) <= 0:
+        return indices
+
+    jammed = []
+    for idx in indices:
+        if random.random() < 0.55:
+            shift = random.choice((-2, -1, 1, 2))
+            new_idx = max(0, min(len(hand) - 1, idx + shift))
+            jammed.append(new_idx)
+        else:
+            jammed.append(idx)
+
+    # Kadang OS interference merubah urutan input, bukan hanya indeks
+    if len(jammed) > 1 and random.random() < 0.35:
+        random.shuffle(jammed)
+
+    jammed = [i for i in sorted(set(jammed)) if 0 <= i < len(hand)]
+    if jammed != indices:
+        print(f"\n  {Warna.MERAH}⚠ OS interference! Input kartu kamu terganggu: {indices} → {jammed}{Warna.RESET}")
+        time.sleep(1.2)
+
+    return jammed
+
+
+def _get_effective_player_defense(player):
+    player_defense = get_stat(player, 'defense', 5)
+    if player.get('_def_debuff_turns', 0) > 0:
+        player_defense = int(player_defense * player.get('_def_debuff_pct', 0.75))
+    if player.get('_buffs', {}).get('def_up', 0) > 0:
+        player_defense = int(player_defense * 1.50)
+    return max(0, player_defense)
+
+
+def _get_effective_player_attack(player):
+    player_attack = get_stat(player, 'attack', 10)
+    if player.get('_atk_debuff_turns', 0) > 0:
+        player_attack = int(player_attack * 0.75)
+    if player.get('_buffs', {}).get('atk_up', 0) > 0:
+        player_attack = int(player_attack * 1.25)
+    return max(1, player_attack)
+
+
+def _choose_enemy_hand(enemy_hand, enemy, player_defense):
+    best = None
+    best_score = -9999
+    indices = list(range(len(enemy_hand)))
+    max_pick = min(5, len(enemy_hand))
+
+    combo_bonus = {
+        'Royal Flush': 35,
+        'Five of a Kind': 28,
+        'Straight Flush': 24,
+        'Four of a Kind': 18,
+        'Full House': 13,
+        'Flush': 10,
+        'Straight': 9,
+        'Three of a Kind': 6,
+        'Two Pair': 3,
+        'One Pair': 0,
+        'High Card': -8,
+        'Nothing': -12,
+    }
+
+    for size in range(1, max_pick + 1):
+        for combo in combinations(indices, size):
+            cards = [enemy_hand[i] for i in combo]
+            hand_type, hand_score = evaluate_hand(cards)
+            if hand_type == "Invalid Hand (Duplicate Cards)":
+                continue
+            damage = calculate_kerusakan(
+                hand_type, hand_score,
+                enemy.get('attack', 15),
+                enemy.get('level', 1),
+                is_enemy=True,
+                defense=player_defense
+            )
+            score = damage + combo_bonus.get(hand_type, 0)
+
+            if enemy.get('ai_style', '').startswith('boss'):
+                score += size * 0.5
+            if enemy.get('ai_style') == 'aggressive' and hand_type in ('One Pair', 'High Card'):
+                score += 1
+            if enemy.get('ai_style') == 'defensive' and hand_type in ('Two Pair', 'Three of a Kind', 'Full House'):
+                score += 2
+            if hand_type == 'High Card':
+                score -= 4
+
+            if score > best_score:
+                best_score = score
+                best = (combo, hand_type, hand_score, damage)
+
+    if not best:
+        return [], 'High Card', 0, []
+
+    combo, hand_type, hand_score, damage = best
+    cards = [enemy_hand[i] for i in combo]
+    return cards, hand_type, damage, sorted(combo, reverse=True)
+
+
+def _choose_enemy_skill(enemy, player, combat_log, turn):
+    skills = enemy.get('skills', {})
+    if not skills:
+        return None
+
+    skill_candidates = []
+    for key, skill in skills.items():
+        remaining = enemy.setdefault('_skill_uses', {}).get(key, skill.get('uses', 1))
+        if remaining == 0:
+            continue
+        weight = 0.8
+        desc = skill.get('effect', '').lower()
+        name = skill.get('name', '').lower()
+
+        if 'summon' in desc or 'summons' in desc:
+            weight += 2.5
+        if 'boost' in desc or 'enhancement' in desc:
+            weight += 2.0
+        if 'confusion' in desc or 'deny' in desc or 'corrupt' in desc:
+            weight += 1.8
+        if 'poison' in desc or 'neurotoxin' in name:
+            weight += 2.0
+        if 'defense' in desc and 'reduce' in desc:
+            weight += 1.7
+        if 'ignore' in desc or 'high damage' in desc or 'devastating' in desc:
+            weight += 1.6
+        if 'dodge' in desc or 'immunity' in desc:
+            weight += 1.2
+
+        if enemy.get('boss'):
+            if enemy.get('hp', 0) < enemy.get('max_hp', 1) * 0.40:
+                weight += 1.5
+        if 'aggressive' in enemy.get('ai_style', '') and ('damage' in desc or 'strike' in name):
+            weight += 1.2
+        if 'defensive' in enemy.get('ai_style', '') and ('boost' in desc or 'immunity' in desc):
+            weight += 1.5
+        if 'tactical' in enemy.get('ai_style', '') and 'reduce' in desc:
+            weight += 1.3
+
+        if player.get('_buffs', {}).get('card_power_mult', 0) > 0 and ('confusion' in desc or 'deny' in desc or 'manipul' in desc):
+            weight += 1.2
+
+        skill_candidates.append((key, skill, weight))
+
+    if not skill_candidates:
+        return None
+
+    threshold = 0.40 if enemy.get('boss') else 0.20
+    if enemy.get('superboss'):
+        threshold = 0.55
+    if random.random() > threshold:
+        return None
+
+    total = sum(w for _, _, w in skill_candidates)
+    choice = random.random() * total
+    for key, skill, weight in skill_candidates:
+        if choice < weight:
+            return key, skill
+        choice -= weight
+    return skill_candidates[-1][0], skill_candidates[-1][1]
+
+
+def _apply_enemy_skill(skill, enemy, player, combat_log):
+    name = skill.get('name', 'Skill')
+    desc = skill.get('effect', '').lower()
+    action_taken = None
+    damage = 0
+
+    if 'reduces party defense' in desc or ('defense' in desc and 'reduce' in desc):
+        player['_def_debuff_turns'] = max(player.get('_def_debuff_turns', 0), 3)
+        player['_def_debuff_pct'] = 0.75
+        action_taken = f"{Warna.KUNING}⚡ {name}: DEF kamu dikurangi 25% selama 3 turn.{Warna.RESET}"
+    elif 'ignores 50% defense' in desc:
+        player_def = _get_effective_player_defense(player)
+        damage = calculate_kerusakan('High Card', 20, enemy.get('attack', 15) * 2, enemy.get('level', 1), is_enemy=True, defense=max(1, int(player_def * 0.5)))
+        action_taken = f"{Warna.MERAH}⚡ {name}: Serangan brutal menembus pertahananmu! {damage} damage.{Warna.RESET}"
+    elif 'summons' in desc:
+        enemy.setdefault('_buffs', {})
+        enemy['_buffs']['atk_up'] = enemy['_buffs'].get('atk_up', 0) + 1
+        enemy['_buffs']['def_up'] = enemy['_buffs'].get('def_up', 0) + 1
+        action_taken = f"{Warna.UNGU}⚡ {name}: Memanggil backup! ATK dan DEF musuh naik 15% selama 1 turn.{Warna.RESET}"
+    elif 'poison' in desc or 'drown' in desc:
+        player['_poisoned'] = 3
+        player['_poison_damage'] = 15
+        action_taken = f"{Warna.MERAH}⚡ {name}: Kamu diracuni! -15 HP per turn selama 3 turn.{Warna.RESET}"
+    elif 'boosts atk/def' in desc or 'boosts atk' in desc:
+        enemy.setdefault('_buffs', {})
+        enemy['_buffs']['atk_up'] = 3
+        enemy['_buffs']['def_up'] = 3
+        action_taken = f"{Warna.UNGU}⚡ {name}: Musuh meningkatkan ATK dan DEF 40% selama 3 turn.{Warna.RESET}"
+    elif 'confusion' in desc or 'deny' in desc or 'corrupt' in desc or 'manipul' in desc:
+        player['_hand_jam'] = max(player.get('_hand_jam', 0), 2)
+        player['_atk_debuff_turns'] = max(player.get('_atk_debuff_turns', 0), 2)
+        action_taken = f"{Warna.MERAH}⚡ {name}: OS kamu terganggu! Input kartu bisa kacau selama 2 turn.{Warna.RESET}"
+    elif 'reduces damage taken' in desc or 'royal immunity' in name.lower():
+        enemy.setdefault('_buffs', {})
+        enemy['_buffs']['def_up'] = 3
+        action_taken = f"{Warna.CYAN}⚡ {name}: Musuh menguatkan pertahanan 50% selama 3 turn.{Warna.RESET}"
+    elif 'massive' in desc or 'huge' in desc or 'devastating' in desc or 'power play' in name.lower():
+        player_def = _get_effective_player_defense(player)
+        damage = calculate_kerusakan('One Pair', 20, enemy.get('attack', 15) * 2, enemy.get('level', 1), is_enemy=True, defense=player_def)
+        action_taken = f"{Warna.MERAH}⚡ {name}: {damage} damage langsung!{Warna.RESET}"
+    else:
+        player_def = _get_effective_player_defense(player)
+        damage = calculate_kerusakan('One Pair', 20, enemy.get('attack', 15), enemy.get('level', 1), is_enemy=True, defense=player_def)
+        action_taken = f"{Warna.MERAH}⚡ {name}: Serangan musuh {damage} damage.{Warna.RESET}"
+
+    if damage > 0:
+        player['hp'] = max(0, player['hp'] - damage)
+
+    return action_taken or f"{Warna.ABU_GELAP}{name} digunakan.{Warna.RESET}", damage
+
+
+def _apply_enemy_buffs(enemy, damage):
+    if enemy.get('_buffs', {}).get('atk_up', 0) > 0:
+        return int(damage * 1.20)
+    return damage
+
 
 def _strip_ansi_vis(s):
     """Hapus ANSI untuk hitung panjang teks yang terlihat."""
@@ -232,24 +454,118 @@ def _pad_col(s, width):
     """Pad string s ke kanan sampai visible-width = width."""
     return s + ' ' * max(0, width - _vis_len(s))
 
+def _resolve_combat_hp(current, maximum):
+    """Normalise HP values; bar ratio is capped at 100%."""
+    bar_max = max(1, int(maximum) if maximum else 1)
+    cur     = max(0, int(current) if current is not None else bar_max)
+    bar_cur = min(cur, bar_max)
+    return cur, bar_max, bar_cur, bar_max
+
+def _format_hp_pair(current, maximum):
+    """Compact HP text — keeps side-by-side columns from overflowing."""
+    if current >= 1000 or maximum >= 1000:
+        def _fmt(n):
+            if n >= 10000:
+                return f"{n // 1000}k"
+            if n >= 1000:
+                whole = n / 1000
+                return f"{whole:.1f}k".replace('.0k', 'k')
+            return str(n)
+        return f"{_fmt(current)}/{_fmt(maximum)}"
+    return f"{current}/{maximum}"
+
+def _hp_stat_line(label, current, maximum, col_width, variant='normal'):
+    """Build an HP line guaranteed to fit within col_width visible chars."""
+    disp_cur, disp_max, bar_cur, bar_max = _resolve_combat_hp(current, maximum)
+    nums   = _format_hp_pair(disp_cur, disp_max)
+    prefix = f"  {label} : "
+    suffix = f" {nums}"
+    fixed  = len(prefix) + len(suffix) + 2  # [ ] brackets
+    bar_len = max(4, min(16, col_width - fixed))
+    bar  = make_hp_bar(bar_cur, bar_max, bar_len, variant=variant)
+    line = f"{prefix}{bar} {nums}"
+    while _vis_len(line) > col_width and bar_len > 4:
+        bar_len -= 1
+        bar  = make_hp_bar(bar_cur, bar_max, bar_len, variant=variant)
+        line = f"{prefix}{bar} {nums}"
+    return line
+
+def _normalize_combat_hp(entity):
+    """Sync and clamp hp/max_hp on a combat participant dict."""
+    max_hp = get_stat(entity, 'max_hp', 100)
+    hp     = get_stat(entity, 'hp', max_hp)
+    max_hp = max(1, int(max_hp))
+    hp     = max(0, min(int(hp), max_hp))
+    entity['hp']     = hp
+    entity['max_hp'] = max_hp
+    stats = entity.get('stats')
+    if isinstance(stats, dict):
+        stats['hp']     = hp
+        stats['max_hp'] = max_hp
+    return hp, max_hp
+
+def _superboss_border(tw, char='▓'):
+    """Border frame khusus superboss — ungu/cyan bergantian."""
+    inner = max(20, tw - 1)
+    left  = Warna.UNGU + char * (inner // 2) + Warna.RESET
+    right = Warna.CYAN + char * (inner - inner // 2) + Warna.RESET
+    return left + right
+
+def _show_superboss_combat_intro(enemy):
+    """Cinematic singkat sebelum loop combat superboss dimulai."""
+    tw = _tw()
+    border = _superboss_border(tw)
+    print(f"\n{border}")
+    print(f"{Warna.UNGU + Warna.TERANG}{'  ★  LEGENDARY SUPERBOSS  ★  '.center(tw - 1)}{Warna.RESET}")
+    print(border)
+    time.sleep(0.5)
+    name = enemy.get('name', 'SUPERBOSS')
+    hp   = enemy.get('hp', enemy.get('max_hp', '?'))
+    mhp  = enemy.get('max_hp', '?')
+    phases = enemy.get('phases', 1)
+    print(f"\n  {Warna.CYAN + Warna.TERANG}{name}{Warna.RESET}")
+    print(f"  {Warna.ABU_GELAP}Threat: {Warna.UNGU + Warna.TERANG}LEGENDARY{Warna.ABU_GELAP}  │  "
+          f"HP: {hp}/{mhp}  │  Phases: {phases}{Warna.RESET}")
+    print(f"\n  {Warna.MERAH + Warna.TERANG}⚠ Tidak ada jalan keluar. Hanya satu yang akan bertahan.{Warna.RESET}")
+    print(border)
+    time.sleep(1.4)
+
 # Tampilkan UI combat side-by-side
 def show_combat_ui(player, enemy, overtime_progress=0, overtime_required=10, overtime_active=False, overtime_available=False):
     """Display combat UI SIDE-BY-SIDE: kolom MUSUH | kolom KAMU."""
     clear_screen()
     tw = _tw()
+    is_superboss = enemy.get('superboss', False)
 
-    # HEADER
-    border = Warna.MERAH + '═' * (tw - 1) + Warna.RESET
+    # HEADER — superboss gets abyssal frame; boss gets red; normal gets standard
+    if is_superboss:
+        border = _superboss_border(tw)
+        title  = '  ★  SUPERBOSS BATTLE  ★  '
+        tc     = Warna.UNGU + Warna.TERANG
+    elif enemy.get('boss'):
+        border = Warna.MERAH + '═' * (tw - 1) + Warna.RESET
+        title  = '  ⚔  BOSS BATTLE  ⚔  '
+        tc     = Warna.MERAH + Warna.TERANG
+    else:
+        border = Warna.MERAH + '═' * (tw - 1) + Warna.RESET
+        title  = '  ⚔  PERTARUNGAN  ⚔  '
+        tc     = Warna.MERAH + Warna.TERANG
     print(f"\n{border}")
-    print(f"{Warna.MERAH + Warna.TERANG}{'  ⚔  PERTARUNGAN  ⚔'.center(tw - 1)}{Warna.RESET}")
+    print(f"{tc}{title.center(tw - 1)}{Warna.RESET}")
     print(f"{border}\n")
 
     # Lebar tiap kolom
     col  = max(30, (tw - 3) // 2)
     bar  = max(10, col - 18)       # panjang HP/EN bar
+    hp_variant = 'superboss' if is_superboss else 'normal'
 
     # KOLOM KIRI: MUSUH
-    boss_tag  = f" {Warna.KUNING}[BOSS]{Warna.RESET}"  if enemy.get('boss')             else ""
+    if is_superboss:
+        boss_tag = f" {Warna.UNGU + Warna.TERANG}[★ SUPERBOSS]{Warna.RESET}"
+    elif enemy.get('boss'):
+        boss_tag = f" {Warna.KUNING}[BOSS]{Warna.RESET}"
+    else:
+        boss_tag = ""
     stun_tag  = f" {Warna.CYAN}[STUN]{Warna.RESET}"    if enemy.get('_stunned', 0) > 0  else ""
     e_debuffs = []
     if enemy.get('_def_debuff_turns', 0) > 0:
@@ -258,14 +574,21 @@ def show_combat_ui(player, enemy, overtime_progress=0, overtime_required=10, ove
         e_debuffs.append(f"{Warna.KUNING}ATK↓{enemy['_atk_debuff_turns']}t{Warna.RESET}")
     deb = (" " + " ".join(e_debuffs)) if e_debuffs else ""
 
+    enemy_header = (Warna.UNGU + Warna.TERANG if is_superboss else Warna.MERAH + Warna.TERANG)
     left_lines = [
-        f"{Warna.MERAH + Warna.TERANG}▶ MUSUH{Warna.RESET}{boss_tag}",
+        f"{enemy_header}▶ MUSUH{Warna.RESET}{boss_tag}",
         f"  {Warna.TERANG}{enemy['name']}{Warna.RESET}{stun_tag}",
-        f"  HP : {make_hp_bar(enemy['hp'], enemy['max_hp'], bar)} "
-        f"{enemy['hp']}/{enemy['max_hp']}",
+        _hp_stat_line("HP", enemy['hp'], enemy['max_hp'], col, variant=hp_variant),
         f"  ATK:{enemy.get('attack','?')} DEF:{enemy.get('defense','?')}{deb}",
-        "",
     ]
+    if is_superboss:
+        phase  = enemy.get('current_phase', 1)
+        total  = enemy.get('phases', 1)
+        p_fill = '▰' * phase + '▱' * max(0, total - phase)
+        left_lines.append(
+            f"  {Warna.UNGU}PHASE [{p_fill}] {phase}/{total}{Warna.RESET}"
+        )
+    left_lines.append("")
 
     # KOLOM KANAN: KAMU
     energy     = player.get('energy', 0)
@@ -302,8 +625,7 @@ def show_combat_ui(player, enemy, overtime_progress=0, overtime_required=10, ove
     right_lines = [
         f"{Warna.HIJAU + Warna.TERANG}▶ KAMU{Warna.RESET}",
         f"  {Warna.TERANG}{player['name']}{Warna.RESET} (Lv.{player.get('level',1)})",
-        f"  HP  : {make_hp_bar(player['hp'], player['max_hp'], bar)} "
-        f"{player['hp']}/{player['max_hp']}",
+        _hp_stat_line("HP", player['hp'], player['max_hp'], col),
         f"  {Warna.CYAN}EN  : {make_energy_bar(energy, max_energy, bar)} "
         f"{energy}/{max_energy}{Warna.RESET}",
         f"  ATK:{p_atk} DEF:{p_def} SPD:{p_spd}" + (f"  {buff_str}" if buff_str else ""),
@@ -322,7 +644,8 @@ def show_combat_ui(player, enemy, overtime_progress=0, overtime_required=10, ove
         R = right_lines[i] if i < len(right_lines) else ""
         print(f"{_pad_col(L, col)} {div} {R}")
 
-    print(f"\n{Warna.ABU_GELAP}{'─' * (tw - 1)}{Warna.RESET}")
+    footer = _superboss_border(tw, '─') if is_superboss else f"{Warna.ABU_GELAP}{'─' * (tw - 1)}{Warna.RESET}"
+    print(f"\n{footer}")
 
 def make_energy_bar(current, maximum, length=20):
     """Create energy bar untuk skill display — warna teal kalem."""
@@ -353,29 +676,59 @@ def _tick_buffs(player):
                 del buffs[key]
     player['_buffs'] = buffs
 
-def make_hp_bar(current, maximum, length=30):
-    """Create HP bar"""
-    filled = int((current / maximum) * length) if maximum else 0
+
+def _tick_player_status(player):
+    if player.get('_poisoned', 0) > 0:
+        poison_damage = player.get('_poison_damage', 10)
+        player['hp'] = max(0, player['hp'] - poison_damage)
+        player['_poisoned'] -= 1
+        print(f"\n  {Warna.MERAH}⚠ Poison: -{poison_damage} HP{Warna.RESET}")
+        time.sleep(0.8)
+
+    if player.get('_hand_jam', 0) > 0:
+        player['_hand_jam'] -= 1
+        if player['_hand_jam'] == 0:
+            print(f"\n  {Warna.HIJAU}⚡ OS interference cleared.{Warna.RESET}")
+            time.sleep(0.8)
+
+    if player.get('_atk_debuff_turns', 0) > 0:
+        player['_atk_debuff_turns'] -= 1
+
+
+def make_hp_bar(current, maximum, length=30, variant='normal'):
+    """Create HP bar. variant: 'normal', 'superboss'."""
+    _, bar_max, bar_cur, _ = _resolve_combat_hp(current, maximum)
+    filled = int((bar_cur / bar_max) * length) if bar_max else 0
     filled = max(0, min(length, filled))
     empty = length - filled
-    
-    if current > maximum * 0.6:
-        color = Warna.HIJAU
-    elif current > maximum * 0.3:
-        color = Warna.KUNING
+
+    if variant == 'superboss':
+        if current > maximum * 0.6:
+            color = Warna.CYAN + Warna.TERANG
+        elif current > maximum * 0.3:
+            color = Warna.UNGU + Warna.TERANG
+        else:
+            color = Warna.MERAH + Warna.TERANG
+        fill_ch, empty_ch = '▰', '▱'
     else:
-        color = Warna.MERAH
-    
-    bar = f"{color}{'█' * filled}{'░' * empty}{Warna.RESET}"
+        if current > maximum * 0.6:
+            color = Warna.HIJAU
+        elif current > maximum * 0.3:
+            color = Warna.KUNING
+        else:
+            color = Warna.MERAH
+        fill_ch, empty_ch = '█', '░'
+
+    bar = f"{color}{fill_ch * filled}{Warna.ABU_GELAP}{empty_ch * empty}{Warna.RESET}"
     return f"[{bar}]"
 
-def _run_qte(timeout=1.8):
+def _run_qte(timeout=1.4):
     """Quick Time Event saat musuh menyerang.
     Returns: 'a'=Blok, 'd'=Counter, None=gagal/timeout
     (Dodge 'S' dihapus — hanya Blok dan Counter tersedia)
     """
     bar_chars = int(timeout * 10)
-    print(f"\n  {Warna.MERAH + Warna.TERANG}⚡ QTE! ▶ A=Blok(-75% dmg)  D=Counter(balik 40% serangan){Warna.RESET}")
+    print(f"\n  {Warna.MERAH + Warna.TERANG}⚡ QTE! ▶ A=Blok(-40% dmg)  D=Counter(balik 40% serangan){Warna.RESET}")
     print(f"  {Warna.KUNING}Waktu: [{' ' * bar_chars}] ketik + Enter{Warna.RESET}", flush=True)
 
     try:
@@ -452,9 +805,9 @@ def _apply_qte_result(qte_key, enemy_kerusakan, player, enemy, combat_log, Warna
     """Terapkan hasil QTE — kembalikan (damage_final, message, counter_dmg)."""
     counter_dmg = 0
     if qte_key == 'a':
-        # Blok: kurangi 75% damage
-        reduced = max(1, enemy_kerusakan // 4)
-        msg = (f"{Warna.CYAN}⚡ QTE BLOK! Damage dikurangi 75%: "
+        # Blok: kurangi 40% damage (pemain menerima 60% damage)
+        reduced = max(1, int(enemy_kerusakan * 0.60))
+        msg = (f"{Warna.CYAN}⚡ QTE BLOK! Damage dikurangi 40%: "
                f"{enemy_kerusakan} → {reduced}{Warna.RESET}")
         combat_log.append(msg)
         return reduced, msg, 0
@@ -488,11 +841,17 @@ def show_hand(hand, selectable=True):
     print()
 
 # Loop utama combat
-def _show_boss_retry_menu(retries_left, boss_name, Warna=Warna):
+def _show_boss_retry_menu(retries_left, boss_name, is_superboss=False, Warna=Warna):
     """Tampilkan menu retry/give up saat player kalah lawan boss."""
-    print(f"\n{Warna.MERAH + Warna.TERANG}")
+    if is_superboss:
+        frame = Warna.UNGU + Warna.TERANG
+        title = "!  THE ABYSS CLAIMS YOU...  !"
+    else:
+        frame = Warna.MERAH + Warna.TERANG
+        title = "!  KALAH DARI BOSS...  !"
+    print(f"\n{frame}")
     print(f"  ╔══════════════════════════════════════════╗")
-    print(f"  ║          ⚠  KALAH DARI BOSS...          ║")
+    print(f"  ║{title.center(42)}║")
     print(f"  ╚══════════════════════════════════════════╝")
     print(f"{Warna.RESET}")
     print(f"  {Warna.MERAH}Kamu dikalahkan oleh {boss_name}.{Warna.RESET}")
@@ -538,7 +897,8 @@ def run_combat(player_stats, enemy_data, inventory):
 
         if retries_left > 0:
             retries_left -= 1
-            choice = _show_boss_retry_menu(retries_left, boss_name)
+            choice = _show_boss_retry_menu(retries_left, boss_name,
+                                            is_superboss=enemy_data.get('superboss', False))
 
             if choice == 'retry':
                 # Partial restore: HP ke 70% max (bukan full, ada konsekuensi)
@@ -573,7 +933,7 @@ def run_combat(player_stats, enemy_data, inventory):
             inventory.extend(snap_inventory)
             print(f"\n{Warna.MERAH + Warna.TERANG}")
             print(f"  ╔══════════════════════════════════════════╗")
-            print(f"  ║   ❌ RETRY HABIS — KEMBALI KE CHECKPOINT ║")
+            print(f"  ║    RETRY HABIS — KEMBALI KE CHECKPOINT   ║")
             print(f"  ╚══════════════════════════════════════════╝")
             print(f"{Warna.RESET}")
             print(f"  {Warna.KUNING}Inventory dipulihkan ke kondisi sebelum battle.{Warna.RESET}")
@@ -595,27 +955,58 @@ def _trigger_boss_phase_if_needed(enemy, combat_log):
     atk_mult  = phase_info['atk_mult']
     def_mult  = phase_info['def_mult']
 
-    border = Warna.MERAH + ('=' * 46) + Warna.RESET
-    print(f"\n{border}")
-    if new_phase == 2:
-        print(f"{Warna.KUNING + Warna.TERANG}  ⚠  PHASE 2 — ENRAGED  ⚠{Warna.RESET}")
+    is_superboss = enemy.get('superboss', False)
+    if is_superboss:
+        border = _superboss_border(48, '▓')
+        if new_phase == 2:
+            phase_label = "  ★  PHASE 2 — TIDES OF WRATH  ★  "
+            phase_color = Warna.UNGU + Warna.TERANG
+        else:
+            phase_label = f"  ★★  PHASE {new_phase} — ABYSSAL FURY  ★★  "
+            phase_color = Warna.CYAN + Warna.TERANG
     else:
-        print(f"{Warna.MERAH + Warna.TERANG}  !! PHASE {new_phase} — DESPERATE !!{Warna.RESET}")
+        border = Warna.MERAH + ('=' * 46) + Warna.RESET
+        if new_phase == 2:
+            phase_label = "  ⚠  PHASE 2 — ENRAGED  ⚠  "
+            phase_color = Warna.KUNING + Warna.TERANG
+        else:
+            phase_label = f"  !! PHASE {new_phase} — DESPERATE !!  "
+            phase_color = Warna.MERAH + Warna.TERANG
+    print(f"\n{border}")
+    print(f"{phase_color}{phase_label}{Warna.RESET}")
     print(border)
 
     for line in dialog:
         if line:
-            print(f"\n  {Warna.KUNING + Warna.TERANG}{line}{Warna.RESET}")
+            if is_superboss:
+                if ':' in line:
+                    speaker, text = line.split(':', 1)
+                    print(f"\n  {Warna.UNGU + Warna.TERANG}{speaker.strip()}{Warna.RESET}: {Warna.CYAN + Warna.TERANG}{text.strip()}{Warna.RESET}")
+                elif line.startswith('*') and line.endswith('*'):
+                    print(f"\n  {Warna.CYAN + Warna.DIM}{line}{Warna.RESET}")
+                else:
+                    print(f"\n  {Warna.CYAN + Warna.TERANG}{line}{Warna.RESET}")
+            else:
+                print(f"\n  {Warna.KUNING + Warna.TERANG}{line}{Warna.RESET}")
             time.sleep(0.9)
         else:
             print()
 
-    print(f"\n  {Warna.MERAH}[PHASE {new_phase}] ATK x{atk_mult:.2f}  DEF x{def_mult:.2f}{Warna.RESET}")
-    if heal > 0:
-        print(f"  {Warna.HIJAU}[PHASE {new_phase}] Boss memulihkan {heal} HP!{Warna.RESET}")
+    if is_superboss:
+        print(f"\n  {Warna.UNGU + Warna.TERANG}[PHASE {new_phase}] ATK x{atk_mult:.2f}  DEF x{def_mult:.2f}{Warna.RESET}")
+        if heal > 0:
+            print(f"  {Warna.CYAN + Warna.TERANG}[PHASE {new_phase}] Boss memulihkan {heal} HP!{Warna.RESET}")
+    else:
+        print(f"\n  {Warna.MERAH}[PHASE {new_phase}] ATK x{atk_mult:.2f}  DEF x{def_mult:.2f}{Warna.RESET}")
+        if heal > 0:
+            print(f"  {Warna.HIJAU}[PHASE {new_phase}] Boss memulihkan {heal} HP!{Warna.RESET}")
 
-    log_msg = (f"{Warna.MERAH}★ {enemy['name']} masuk PHASE {new_phase}! "
-               f"ATK dan DEF meningkat!{Warna.RESET}")
+    if is_superboss:
+        log_msg = (f"{Warna.UNGU + Warna.TERANG}★ {enemy['name']} masuk PHASE {new_phase}! "
+                   f"Kekuatan abisal meningkat!{Warna.RESET}")
+    else:
+        log_msg = (f"{Warna.MERAH}★ {enemy['name']} masuk PHASE {new_phase}! "
+                   f"ATK dan DEF meningkat!{Warna.RESET}")
     combat_log.append(log_msg)
     print(f"\n{border}\n")
     time.sleep(1.5)
@@ -636,9 +1027,12 @@ def _run_single_combat(player_stats, enemy_data, inventory):
         enemy['_buffs'] = {}
 
     if 'hp' not in player:
-        player['hp'] = player['max_hp']
+        player['hp'] = get_stat(player, 'max_hp', 100)
     if 'hp' not in enemy:
         enemy['hp'] = enemy.get('max_hp', 100)
+
+    _normalize_combat_hp(player)
+    _normalize_combat_hp(enemy)
     
 
 
@@ -666,14 +1060,17 @@ def _run_single_combat(player_stats, enemy_data, inventory):
     elif speed_ratio >= 1.5:
         player_extra_cards = 1
 
-    player_dodge_base = min(0.35, 0.10 + (player_speed - 10) * 0.01)
-    if player_dodge_base < 0.05:
-        player_dodge_base = 0.05
+    player_dodge_base = min(0.12, 0.04 + (player_speed - 10) * 0.004)
+    if player_dodge_base < 0.03:
+        player_dodge_base = 0.03
+
+    bonus_slots = max(0, player.get('bonus_hand_slots', 0))
+    player_hand_target_size = min(20, max(8, 8 + bonus_slots))
 
     player_hand = []
     enemy_hand  = []
 
-    ensure_hand_size(player_hand, deck, target_size=8)
+    ensure_hand_size(player_hand, deck, target_size=player_hand_target_size)
     ensure_hand_size(enemy_hand,  deck, target_size=8)
 
     if player_extra_cards > 0:
@@ -687,9 +1084,9 @@ def _run_single_combat(player_stats, enemy_data, inventory):
     combat_log = []
 
     # Bar overtime terisi setiap player mainkan kartu (bukan skill/discard/pass)
-    # Setelah 10 turn attack → bar penuh → player bisa aktifkan OVERTIME mode
-    # OVERTIME: 2 turn kebal serangan + damage ×1.75 + bisa main 2 combo hand sekaligus
-    OVERTIME_REQUIRED   = 10     # Turn attack yang dibutuhkan (naik dari 8)
+    # Setelah 12 turn attack → bar penuh → player bisa aktifkan OVERTIME mode
+    # OVERTIME: Shield -50% + damage ×1.35 + bisa main 2 combo hand sekaligus
+    OVERTIME_REQUIRED   = 12     # Turn attack yang dibutuhkan
     overtime_progress   = 0      # Current attack turns
     overtime_active     = False  # Mode overtime sedang aktif
     overtime_turns_left = 0      # Sisa turn overtime
@@ -697,6 +1094,10 @@ def _run_single_combat(player_stats, enemy_data, inventory):
 
     player['hp'] = player.get('hp', player.get('max_hp', 100))
     player['max_hp'] = player.get('max_hp', 100)
+    _normalize_combat_hp(player)
+
+    if enemy.get('superboss'):
+        _show_superboss_combat_intro(enemy)
 
     # Main combat loop
     MAX_TURNS = 100
@@ -704,7 +1105,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
     while player['hp'] > 0 and enemy['hp'] > 0 and turn <= MAX_TURNS:
 
         # Pastikan kedua tangan punya kartu cukup
-        ensure_hand_size(player_hand, deck, target_size=5)
+        ensure_hand_size(player_hand, deck, target_size=player_hand_target_size)
         ensure_hand_size(enemy_hand, deck, target_size=5)
         
         show_combat_ui(player, enemy,
@@ -719,9 +1120,15 @@ def _run_single_combat(player_stats, enemy_data, inventory):
             for log_entry in combat_log[-3:]:
                 print(f"  {log_entry}")
         
-        print(f"\n{Warna.KUNING}═══════════════════════════════════════{Warna.RESET}")
-        print(f"  {Warna.KUNING + Warna.TERANG}TURN {turn}{Warna.RESET}")
-        print(f"{Warna.KUNING}═══════════════════════════════════════{Warna.RESET}")
+        if enemy.get('superboss'):
+            turn_bar = _superboss_border(39, '═')
+            turn_color = Warna.UNGU + Warna.TERANG
+        else:
+            turn_bar = f"{Warna.KUNING}═══════════════════════════════════════{Warna.RESET}"
+            turn_color = Warna.KUNING + Warna.TERANG
+        print(f"\n{turn_bar}")
+        print(f"  {turn_color}TURN {turn}{Warna.RESET}")
+        print(f"{turn_bar}")
         
         show_hand(player_hand)
         
@@ -737,7 +1144,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
               f"{Warna.ABU_GELAP}[P]{Warna.RESET} Skip (+4 EN)  {Warna.MERAH}[F]{Warna.RESET} Kabur")
         if overtime_available and not overtime_active:
             print(f"  {Warna.KUNING + Warna.TERANG}[OT] ⚡ AKTIFKAN OVERTIME! {Warna.RESET}"
-                  f"{Warna.ABU_GELAP}(Kebal 2t + Damage ×1.75 + 2 Combo Hand){Warna.RESET}")
+                  f"{Warna.ABU_GELAP}(Shield -50% + Damage ×1.35 + 2 Combo Hand){Warna.RESET}")
         
         action = input(f"\n  {Warna.PUTIH}> {Warna.RESET}").strip().upper()
         
@@ -748,7 +1155,10 @@ def _run_single_combat(player_stats, enemy_data, inventory):
         if action == 'F':
             is_boss_fight = enemy.get('boss', False)
             
-            if is_boss_fight:
+            if enemy.get('superboss'):
+                print(f"\n  {Warna.UNGU + Warna.TERANG}★ SUPERBOSS — tidak ada jalan keluar!{Warna.RESET}")
+                print(f"  {Warna.CYAN + Warna.TERANG}Peluang kabur: 0% — Benjamin tidak membiarkanmu pergi!{Warna.RESET}")
+            elif is_boss_fight:
                 print(f"\n  {Warna.MERAH + Warna.TERANG}⚠ Musuh adalah BOSS!{Warna.RESET}")
                 print(f"  {Warna.MERAH}Peluang kabur: 5% berhasil, 95% GAGAL!{Warna.RESET}")
             else:
@@ -756,7 +1166,10 @@ def _run_single_combat(player_stats, enemy_data, inventory):
             
             time.sleep(1)
             
-            flee_success_rate = 0.05 if is_boss_fight else 0.25
+            if enemy.get('superboss'):
+                flee_success_rate = 0.0
+            else:
+                flee_success_rate = 0.05 if is_boss_fight else 0.25
             
             if random.random() < flee_success_rate:
                 print(f"  {Warna.HIJAU}✓ Berhasil kabur{Warna.RESET}")
@@ -798,7 +1211,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
             overtime_turns_left = 2
             skip_enemy_turn     = True  # Aktivasi overtime tidak memicu giliran musuh
             action_taken = (f"{Warna.MERAH + Warna.TERANG}⚡ OVERTIME AKTIF! "
-                            f"Kebal 2t + Damage ×1.75 + Bisa main 2 combo hand!{Warna.RESET}")
+                            f"Shield -50% + Damage ×1.35 + Bisa main 2 combo hand!{Warna.RESET}")
             combat_log.append(action_taken)
             print(f"\n  {action_taken}")
             time.sleep(1.5)
@@ -832,7 +1245,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 for _ in range(discarded_count):
                     if deck:
                         player_hand.append(deck.pop())
-                ensure_hand_size(player_hand, deck, discard_pile, target_size=3)
+                ensure_hand_size(player_hand, deck, discard_pile, target_size=player_hand_target_size)
 
                 discard_remaining -= 1           # ← pakai 1 slot
                 sisa = discard_remaining
@@ -962,26 +1375,24 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 elif effect == 'buff_attack':
                     buffs['atk_up'] = 2
                     action_taken = (f"{Warna.CYAN}⚡ {skill['name']}: "
-                                    f"ATK +50% selama 2 giliran!{Warna.RESET}")
+                                    f"ATK +25% selama 2 giliran!{Warna.RESET}")
 
                 # ATK BUFF + ENERGY (Ignatius overclock)
-                # en_gain dibatasi +12 (flat recovery) agar tidak infinite loop:
-                # Overclock biaya 6 EN, regen 12 EN → net +6 EN max, bukan full restore
                 elif effect == 'buff_atk_energy':
                     buffs['atk_up'] = 2
-                    en_gain = 12   # FIX: dikurangi dari 20 → 12 (cegah spam loop)
+                    en_gain = 8
                     player['energy'] = min(max_energy, player.get('energy', 0) + en_gain)
                     action_taken = (f"{Warna.CYAN}⚡ {skill['name']}: "
-                                    f"ATK +50% 2t + "
+                                    f"ATK +30% 2t + "
                                     f"{Warna.CYAN}+{en_gain} EN!{Warna.RESET}")
 
                 # ATK BUFF + small HEAL (Aolinh rhythm boost)
                 elif effect == 'buff_atk_heal':
-                    buffs['atk_up'] = 3
-                    heal = 20
+                    buffs['atk_up'] = 2
+                    heal = 15
                     player['hp'] = min(player['max_hp'], player['hp'] + heal)
                     action_taken = (f"{Warna.CYAN}⚡ {skill['name']}: "
-                                    f"ATK +50% 3t + {Warna.HIJAU}+{heal} HP!{Warna.RESET}")
+                                    f"ATK +20% 2t + {Warna.HIJAU}+{heal} HP!{Warna.RESET}")
 
                 # DEF BUFF (Aolinh shield)
                 elif effect == 'buff_defense':
@@ -999,18 +1410,17 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 elif effect == 'debuff_defense':
                     enemy.setdefault('_orig_def', enemy.get('defense', 5))
                     old_def = enemy.get('defense', 5)
-                    # Exploit Code: 60% DEF reduction. System Hack (legacy): 50%
                     reduction = 0.40 if power > 0 else 0.50
                     pct_str   = "60" if power > 0 else "50"
                     enemy['defense'] = max(0, int(old_def * reduction))
                     enemy['_def_debuff_turns'] = 3
                     action_taken = (f"{Warna.KUNING}⚡ {skill['name']}: "
                                     f"DEF musuh -{pct_str}% selama 3 giliran!{Warna.RESET}")
-                    # Bonus direct damage jika power > 0 (Exploit Code)
                     if power > 0:
-                        enemy_def = max(0, enemy.get('defense', 5))  # Already reduced
+                        enemy_def = max(0, enemy.get('defense', 5))
                         direct_dmg = max(1, power - enemy_def)
                         enemy['hp'] -= direct_dmg
+                        _trigger_boss_phase_if_needed(enemy, combat_log)
                         action_taken = (f"{Warna.KUNING}⚡ {skill['name']}: "
                                         f"{Warna.MERAH}-{direct_dmg} DMG{Warna.KUNING} + "
                                         f"DEF musuh -{pct_str}% selama 3 giliran!{Warna.RESET}")
@@ -1044,81 +1454,80 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                     enemy['_stunned'] = 1
                     action_taken = (f"{Warna.UNGU}⚡ {skill['name']}: "
                                     f"STUN! Musuh skip serangan 1 giliran!{Warna.RESET}")
-                    # Bonus direct damage jika power > 0 (Zero-Day Strike)
                     if power > 0:
                         enemy_def = max(0, enemy.get('defense', 5))
                         direct_dmg = max(1, power - enemy_def)
                         enemy['hp'] -= direct_dmg
+                        _trigger_boss_phase_if_needed(enemy, combat_log)
                         action_taken = (f"{Warna.UNGU}⚡ {skill['name']}: "
                                         f"{Warna.MERAH}-{direct_dmg} DMG{Warna.UNGU} + "
                                         f"STUN! Musuh skip 1 giliran!{Warna.RESET}")
 
                 # RISK/REWARD (Haikaru gambit)
                 elif effect == 'power_up':
-                    hp_cost = 20
-                    en_gain = 30
+                    hp_cost = 25
+                    en_gain = 20
                     player['hp'] = max(1, player['hp'] - hp_cost)
                     buffs['atk_up'] = 2
                     player['energy'] = min(max_energy, player.get('energy', 0) + en_gain)
                     action_taken = (f"{Warna.KUNING}⚡ {skill['name']}: "
-                                    f"-{hp_cost} HP → ATK +50% 2t + "
+                                    f"-{hp_cost} HP → ATK +25% 2t + "
                                     f"{Warna.CYAN}+{en_gain} EN!{Warna.RESET}")
 
                 # ATK + DEF BUFF (Vio ssr_pity_break)
                 elif effect == 'buff_atk_def':
-                    buffs['atk_up'] = 3   # 3 turns (duration_turns dari skill)
-                    buffs['def_up'] = 3
+                    buffs['atk_up'] = 2
+                    buffs['def_up'] = 2
                     action_taken = (f"{Warna.KUNING}⚡ {skill['name']}: "
-                                    f"SSR PULL! {Warna.CYAN}ATK +60%{Warna.KUNING} + "
-                                    f"{Warna.HIJAU}DEF +40%{Warna.KUNING} selama 3 giliran!{Warna.RESET}")
+                                    f"SSR PULL! {Warna.CYAN}ATK +25%{Warna.KUNING} + "
+                                    f"{Warna.HIJAU}DEF +25%{Warna.KUNING} selama 2 giliran!{Warna.RESET}")
 
-                # RANDOM BUFF (Vio gacha — legacy, digantikan SSR Pity Break)
+                # RANDOM BUFF (Vio gacha — legacy)
                 elif effect == 'gacha_buff':
                     roll = random.random()
                     if roll < 0.25:
-                        buffs['atk_up'] = 3
+                        buffs['atk_up'] = 2
                         action_taken = (f"{Warna.KUNING}⚡ {skill['name']}: "
-                                        f"ATK PULL! ATK +45% 3 giliran!{Warna.RESET}")
+                                        f"ATK PULL! ATK +25% 2 giliran!{Warna.RESET}")
                     elif roll < 0.50:
-                        buffs['def_up'] = 3
+                        buffs['def_up'] = 2
                         action_taken = (f"{Warna.HIJAU}⚡ {skill['name']}: "
-                                        f"DEF PULL! DEF +45% 3 giliran!{Warna.RESET}")
+                                        f"DEF PULL! DEF +25% 2 giliran!{Warna.RESET}")
                     elif roll < 0.75:
-                        heal = 40
+                        heal = 30
                         player['hp'] = min(player['max_hp'], player['hp'] + heal)
                         action_taken = (f"{Warna.HIJAU}⚡ {skill['name']}: "
                                         f"HEAL PULL! +{heal} HP!{Warna.RESET}")
                     else:
-                        en_gain = 35
+                        en_gain = 25
                         player['energy'] = min(max_energy, player.get('energy', 0) + en_gain)
                         action_taken = (f"{Warna.CYAN}⚡ {skill['name']}: "
                                         f"ENERGY PULL! +{en_gain} EN!{Warna.RESET}")
 
-                # Skill berbasis KARTU (baru)
+                # Skill berbasis KARTU
 
-                # DOUBLE CARD DAMAGE — hand berikutnya 2× damage (Vio: Data Overload)
+                # DOUBLE CARD DAMAGE — hand berikutnya 1.5× damage
                 elif effect == 'buff_card_power':
-                    buffs['card_power_mult'] = 2  # Dikonsumsi saat main kartu
+                    buffs['card_power_mult'] = 1.5
                     action_taken = (f"{Warna.UNGU}⚡ {skill['name']}: "
-                                    f"KRITIS KARTU! Damage hand berikutnya ×2!{Warna.RESET}")
+                                    f"KRITIS KARTU! Damage hand berikutnya ×1.5!{Warna.RESET}")
 
-                # AMBUSH — next card 2× damage + stun musuh (Arganta: Ambush Strike)
+                # AMBUSH — next card 1.5× damage + stun musuh (Arganta: Ambush Strike)
                 elif effect == 'buff_ambush':
-                    buffs['card_power_mult'] = 2
-                    buffs['ambush_stun'] = 1   # Jika hand berikutnya mengenai, musuh stun
+                    buffs['card_power_mult'] = 1.5
+                    buffs['ambush_stun'] = 1
                     action_taken = (f"{Warna.UNGU}⚡ {skill['name']}: "
-                                    f"AMBUSH! Kartu berikutnya ×2 + STUN musuh!{Warna.RESET}")
+                                    f"AMBUSH! Kartu berikutnya ×1.5 + STUN musuh!{Warna.RESET}")
 
-                # OVERLOAD — next card 2× damage tapi bayar HP (Ignatius: Power Surge)
-                # Data Bomb (Vio) pakai ×3 multiplier dengan HP cost 10
+                # OVERLOAD — next card bonus damage tapi bayar HP (Ignatius / Vio)
                 elif effect == 'buff_overload':
                     skill_name_lower = skill.get('name', '').lower()
                     if 'data bomb' in skill_name_lower or 'data_bomb' in skill_name_lower:
                         hp_cost = 10
-                        mult = 3
+                        mult = 1.75
                     else:
                         hp_cost = 15
-                        mult = 2
+                        mult = 1.6
                     player['hp'] = max(1, player['hp'] - hp_cost)
                     buffs['card_power_mult'] = mult
                     action_taken = (f"{Warna.MERAH}⚡ {skill['name']}: "
@@ -1189,6 +1598,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 if 1 <= idx <= len(usable_items):
                     item = usable_items[idx - 1]
                     inventory.remove(item)
+                    buffs = player.setdefault('_buffs', {})
 
                     if "Health" in item or "Healing" in item:
                         heal = 50
@@ -1197,16 +1607,18 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                     elif "Explosive" in item:
                         kerusakan_dealt = 40
                         enemy['hp'] -= kerusakan_dealt
+                        _trigger_boss_phase_if_needed(enemy, combat_log)
                         action_taken = f"{Warna.MERAH}💥 Pakai {item}: {kerusakan_dealt} damage langsung!{Warna.RESET}"
                     elif "Energy Drink" in item:
                         buffs['atk_up'] = 2
-                        action_taken = f"{Warna.CYAN}⚡ Pakai {item}: ATK +50% selama 2 turn!{Warna.RESET}"
+                        action_taken = f"{Warna.CYAN}⚡ Pakai {item}: ATK +20% selama 2 turn!{Warna.RESET}"
                     elif "Armor Padding" in item:
                         buffs['def_up'] = 2
                         action_taken = f"{Warna.HIJAU}🛡 Pakai {item}: DEF +50% selama 2 turn!{Warna.RESET}"
                     elif "Bomb" in item or "Molotov" in item:
                         kerusakan_dealt = 40
                         enemy['hp'] -= kerusakan_dealt
+                        _trigger_boss_phase_if_needed(enemy, combat_log)
                         action_taken = f"{Warna.MERAH}Pakai {item}: {kerusakan_dealt} kerusakan{Warna.RESET}"
                     elif "Med Kit" in item:
                         heal = 80
@@ -1233,6 +1645,12 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 # Check for duplicates — reject if any found
                 if len(indices) != len(set(indices)):
                     print(f"\n  {Warna.MERAH}Input salah! (tidak boleh ada duplikat indeks){Warna.RESET}")
+                    time.sleep(1)
+                    continue
+
+                indices = _resolve_jammed_indices(indices, player_hand, player, Warna)
+                if not indices:
+                    print(f"\n  {Warna.MERAH}OS interference membuat input tidak valid! Coba lagi.{Warna.RESET}")
                     time.sleep(1)
                     continue
                 
@@ -1268,11 +1686,21 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                     print(f"\n  {Warna.KUNING}💬 {dialog}{Warna.RESET}")
                     time.sleep(1.2)
 
-                player_attack = get_stat(player, 'attack', 10)
-                # Terapkan ATK buff jika aktif (50% bonus)
-                if player.get('_buffs', {}).get('atk_up', 0) > 0:
-                    player_attack = int(player_attack * 1.50)
+                base_raw_atk = get_stat(player, 'attack', 10)
                 defense_reduction = enemy.get('defense', 5)
+                unbuffed_dmg = calculate_kerusakan(
+                    hand_type, hand_score,
+                    base_raw_atk,
+                    player.get('level', 1),
+                    is_enemy=False,
+                    defense=defense_reduction
+                )
+
+                player_attack = base_raw_atk
+                # Terapkan ATK buff jika aktif (25% bonus)
+                if player.get('_buffs', {}).get('atk_up', 0) > 0:
+                    player_attack = int(player_attack * 1.25)
+
                 kerusakan_dealt = calculate_kerusakan(
                     hand_type, hand_score,
                     player_attack,
@@ -1281,12 +1709,13 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                     defense=defense_reduction
                 )
 
-                # Cek buff card_power_mult (skill Vio/Arganta/Ignatius) — damage ×N
+                # Cek buff card_power_mult (skill Vio/Arganta/Ignatius) — damage ×N (max 1.75x)
                 card_mult = player.get('_buffs', {}).get('card_power_mult', 0)
                 mult_tag = ""
                 if card_mult > 0:
-                    kerusakan_dealt = kerusakan_dealt * card_mult
-                    mult_tag = f" {Warna.UNGU}[×{card_mult} POWER!]{Warna.RESET}"
+                    card_mult = min(1.75, card_mult)
+                    kerusakan_dealt = int(kerusakan_dealt * card_mult)
+                    mult_tag = f" {Warna.UNGU}[×{card_mult:.2f} POWER!]{Warna.RESET}"
                     player['_buffs']['card_power_mult'] = 0  # consume
 
                 # Cek ambush_stun buff (Arganta Ambush) — stun musuh setelah hit
@@ -1296,10 +1725,16 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                     player['_buffs']['ambush_stun'] = 0
                     mult_tag += f" {Warna.CYAN}[STUN!]{Warna.RESET}"
 
-                # OVERTIME DAMAGE BOOST
+                # OVERTIME DAMAGE BOOST (×1.35)
                 if overtime_active:
-                    kerusakan_dealt = int(kerusakan_dealt * 1.75)
-                    mult_tag += f" {Warna.MERAH + Warna.TERANG}[OVERTIME ×1.75!]{Warna.RESET}"
+                    kerusakan_dealt = int(kerusakan_dealt * 1.35)
+                    mult_tag += f" {Warna.MERAH + Warna.TERANG}[OVERTIME ×1.35!]{Warna.RESET}"
+
+                # Batasi total damage dari buff agar tidak lebih dari 2.0x damage tanpa buff
+                max_buffed_dmg = max(unbuffed_dmg, int(unbuffed_dmg * 2.0))
+                if kerusakan_dealt > max_buffed_dmg:
+                    kerusakan_dealt = max_buffed_dmg
+                    mult_tag += f" {Warna.KUNING}[MAX BUFF CAP ×2.0]{Warna.RESET}"
                 
                 enemy['hp'] -= kerusakan_dealt
                 
@@ -1315,7 +1750,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 for _ in played_cards:
                     if deck:
                         player_hand.append(deck.pop())
-                ensure_hand_size(player_hand, deck, target_size=3)
+                ensure_hand_size(player_hand, deck, target_size=player_hand_target_size)
 
                 # Track overtime progress (hanya dari mainkan kartu, bukan skill/discard)
                 if not overtime_active and not overtime_available:
@@ -1405,19 +1840,30 @@ def _run_single_combat(player_stats, enemy_data, inventory):
             print(f"\n  {Warna.MERAH}Giliran musuh...{Warna.RESET}")
             time.sleep(1)
 
-            if len(enemy_hand) >= 5:
-                played = random.sample(enemy_hand, 5)
-                for card in played:
-                    enemy_hand.remove(card)
-            elif len(enemy_hand) >= 3:
-                num_to_play = random.randint(3, min(len(enemy_hand), 5))
-                played = random.sample(enemy_hand, num_to_play)
-                for card in played:
-                    enemy_hand.remove(card)
-            else:
-                played, enemy_hand = enemy_hand, []
-            
-            hand_type, hand_score = evaluate_hand(played)
+            skill_choice = _choose_enemy_skill(enemy, player, combat_log, turn)
+            if skill_choice:
+                key, skill = skill_choice
+                action, damage = _apply_enemy_skill(skill, enemy, player, combat_log)
+                enemy.setdefault('_skill_uses', {})
+                enemy['_skill_uses'][key] = max(0, enemy['_skill_uses'].get(key, skill.get('uses', 1)) - 1)
+                print(f"  {action}")
+                time.sleep(1.5)
+                refill_deck_if_needed(deck)
+                ensure_hand_size(enemy_hand, deck, target_size=5)
+                continue
+
+            cards, hand_type, hand_damage, removed = _choose_enemy_hand(enemy_hand, enemy, _get_effective_player_defense(player))
+            for idx in removed:
+                if 0 <= idx < len(enemy_hand):
+                    enemy_hand.pop(idx)
+            if not cards:
+                enemy_action = f"{Warna.MERAH}Musuh kebingungan dan tidak menyerang.{Warna.RESET}"
+                combat_log.append(enemy_action)
+                print(f"  {enemy_action}")
+                time.sleep(1.5)
+                refill_deck_if_needed(deck)
+                ensure_hand_size(enemy_hand, deck, target_size=5)
+                continue
 
             # Dodge system:
             # - Base 20% chance setiap giliran (pasif, tanpa skill)
@@ -1434,30 +1880,31 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 combat_log.append(enemy_action)
                 print(f"  {enemy_action}")
             elif overtime_active:
-                enemy_action = (f"{Warna.MERAH}Musuh mainkan {hand_type} — "
-                                f"{Warna.MERAH + Warna.TERANG}[OVERTIME SHIELD! Serangan diabaikan!]{Warna.RESET}")
-                combat_log.append(enemy_action)
-                print(f"  {enemy_action}")
-            else:
-                player_defense = get_stat(player, 'defense', 5)
-                if player.get('_buffs', {}).get('def_up', 0) > 0:
-                    player_defense = int(player_defense * 1.50)
-                base_enemy_dmg = calculate_kerusakan(
-                    hand_type, hand_score,
+                player_defense = _get_effective_player_defense(player)
+                raw_dmg = calculate_kerusakan(
+                    hand_type, hand_damage,
                     enemy.get('attack', 15),
                     enemy.get('level', 1),
                     is_enemy=True,
                     defense=player_defense
                 )
-
+                shielded_dmg = max(1, int(raw_dmg * 0.50))
+                player['hp'] -= shielded_dmg
+                enemy_action = (f"{Warna.MERAH}Musuh mainkan {hand_type}: {raw_dmg} "
+                                f"{Warna.KUNING}[OVERTIME SHIELD -50%]{Warna.MERAH} → {shielded_dmg} damage diterima{Warna.RESET}")
+                combat_log.append(enemy_action)
+                print(f"  {enemy_action}")
+            else:
+                player_defense = _get_effective_player_defense(player)
+                damage = _apply_enemy_buffs(enemy, hand_damage)
                 enemy_action_pre = (f"{Warna.MERAH}Musuh mainkan {hand_type}: "
-                                    f"{base_enemy_dmg} damage {Warna.KUNING}[QTE!]{Warna.RESET}")
+                                    f"{damage} damage {Warna.KUNING}[QTE!]{Warna.RESET}")
                 combat_log.append(enemy_action_pre)
                 print(f"  {enemy_action_pre}")
 
-                qte_key = _run_qte(timeout=1.8)
+                qte_key = _run_qte()
                 final_dmg, qte_msg, _ = _apply_qte_result(
-                    qte_key, base_enemy_dmg, player, enemy, combat_log
+                    qte_key, damage, player, enemy, combat_log
                 )
                 print(f"  {qte_msg}")
 
@@ -1465,19 +1912,14 @@ def _run_single_combat(player_stats, enemy_data, inventory):
                 enemy_action = (f"{Warna.MERAH}Damage diterima: {final_dmg}{Warna.RESET}")
                 combat_log.append(enemy_action)
                 print(f"  {enemy_action}")
-            
+
             time.sleep(1.5)
 
             refill_deck_if_needed(deck)
-            for _ in played:
+            for _ in cards:
                 if deck:
                     enemy_hand.append(deck.pop())
             ensure_hand_size(enemy_hand, deck, target_size=5)
-
-        if player['hp'] <= 0:
-            break
-        
-        # INDEPENDENT COOLDOWN & ENERGY REGEN
         # FIX: Cooldown dan energy regen HANYA berjalan saat player menyerang (main kartu)
         # atau Pass. Saat player pakai Skill / Discard, cooldown skill LAIN tidak boleh
         # berkurang — mencegah efek "EMP Stun mengurangi CD Overclock" dan infinite loop.
@@ -1493,6 +1935,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
 
         # Tick buff durasi player (setiap turn, termasuk skill/discard)
         _tick_buffs(player)
+        _tick_player_status(player)
 
         # Tick overtime — kurangi turns jika sedang aktif (time-based, bukan attack-based)
         if overtime_active:
@@ -1523,12 +1966,42 @@ def _run_single_combat(player_stats, enemy_data, inventory):
     player['_buffs'] = {}
     
     if enemy['hp'] <= 0:
-        print(f"\n{Warna.HIJAU + Warna.TERANG}")
-        print(f"  ╔══════════════════════════════════════╗")
-        print(f"  ║            MENANG!                  ║")
-        print(f"  ╚══════════════════════════════════════╝")
-        print(f"{Warna.RESET}\n")
-        print(f"  {Warna.HIJAU}Kamu mengalahkan {enemy['name']}!{Warna.RESET}")
+        defeat_dialog = enemy.get('dialog', {}).get('defeat')
+        if defeat_dialog:
+            tw = _tw()
+            border = _superboss_border(tw, '▓') if enemy.get('superboss') else (Warna.MERAH + '═' * (tw - 1) + Warna.RESET)
+            print(f"\n{border}")
+            for line in defeat_dialog:
+                if line:
+                    if enemy.get('superboss'):
+                        if ':' in line:
+                            speaker, text = line.split(':', 1)
+                            print(f"  {Warna.UNGU + Warna.TERANG}{speaker.strip()}{Warna.RESET}: {Warna.CYAN + Warna.TERANG}{text.strip()}{Warna.RESET}")
+                        elif line.startswith('*') and line.endswith('*'):
+                            print(f"  {Warna.CYAN + Warna.DIM}{line}{Warna.RESET}")
+                        else:
+                            print(f"  {Warna.CYAN + Warna.TERANG}{line}{Warna.RESET}")
+                    else:
+                        print(f"  {Warna.KUNING + Warna.TERANG}{line}{Warna.RESET}")
+                    time.sleep(0.9)
+                else:
+                    print()
+            print(f"{border}\n")
+            time.sleep(1.2)
+
+        if enemy.get('superboss'):
+            tw = _tw()
+            print(f"\n{_superboss_border(tw, '▓')}")
+            print(f"{Warna.UNGU + Warna.TERANG}{'★  SUPERBOSS SLAIN  ★'.center(tw - 1)}{Warna.RESET}")
+            print(f"{_superboss_border(tw, '▓')}\n")
+            print(f"  {Warna.CYAN + Warna.TERANG}Kamu menaklukkan {enemy['name']}!{Warna.RESET}")
+        else:
+            print(f"\n{Warna.HIJAU + Warna.TERANG}")
+            print(f"  ╔══════════════════════════════════════╗")
+            print(f"  ║              MENANG!                 ║")
+            print(f"  ╚══════════════════════════════════════╝")
+            print(f"{Warna.RESET}\n")
+            print(f"  {Warna.HIJAU}Kamu mengalahkan {enemy['name']}!{Warna.RESET}")
         
         xp = enemy.get('xp', 10)
         print(f"  {Warna.KUNING}+{xp} XP{Warna.RESET}")
@@ -1544,7 +2017,7 @@ def _run_single_combat(player_stats, enemy_data, inventory):
     else:
         print(f"\n{Warna.MERAH + Warna.TERANG}")
         print(f"  ╔══════════════════════════════════════╗")
-        print(f"  ║            KALAH...                 ║")
+        print(f"  ║             KALAH...                 ║")
         print(f"  ╚══════════════════════════════════════╝")
         print(f"{Warna.RESET}\n")
         print(f"  {Warna.MERAH}Kamu dikalahkan oleh {enemy['name']}...{Warna.RESET}")
